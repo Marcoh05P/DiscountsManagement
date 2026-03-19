@@ -1,0 +1,20 @@
+{% extends 'layout/base.html' %}
+
+{% block header_nav_items %}
+    <li class="nav-item">
+    <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Trang chủ</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link">Tạo đơn hàng</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link">Lịch sử đơn hàng</a>
+    </li>
+{% endblock %}
+
+{% block content %}
+    <div class="text-center">
+        <h1>Chào mừng đến với Discounts Management</h1>
+        <p class="lead">Quản lý chương trình khuyến mãi hiệu quả cho doanh nghiệp của bạn</p>
+    </div>
+{% endblock %}
