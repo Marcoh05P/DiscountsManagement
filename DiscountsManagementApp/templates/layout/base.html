@@ -17,10 +17,29 @@
                 </button>
                 
                 <div class="collapse navbar-collapse" id="navbarNav">
+
+
+                    {% if current_user.is_authenticated %}
                     <ul class="navbar-nav me-auto">
                         {% block header_nav_items %}
                         {% endblock %}
                     </ul>
+                    
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <li>
+                            <span class="text-white me-3">{{ current_user.full_name }}</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-danger" href="{{ url_for('logout_process') }}">Đăng xuất</a>
+                        </li>
+                    </ul>
+                    {% else %}
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-success" href="{{ url_for('login_view') }}">Đăng nhập</a>
+                        </li>
+                    </ul>
+                    {% endif %}
                 </div>
             </div>
         </nav>

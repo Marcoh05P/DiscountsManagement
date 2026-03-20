@@ -20,20 +20,20 @@ class UserView(AuthenticatedModelView):
     column_searchable_list = ['full_name', 'phone_number']
     column_filters = ['role']
     column_labels = {
-        'full_name': 'Họ và tên',
-        'phone_number': 'Số điện thoại',
-        'role': 'Vai trò',
-        'active': 'Hoạt động'
+        'full_name': 'Full Name',
+        'phone_number': 'Phone Number',
+        'role': 'Role',
+        'active': 'Active'
     }
     form_columns = ('full_name', 'phone_number', 'role', 'password', 'active')
     column_exclude_list = ['password_hash']
     form_extra_fields = {
-        'password': PasswordField('Mật khẩu')
+        'password': PasswordField('Password')
     }
 
     def create_form(self, obj=None):
         form = super().create_form(obj)
-        form.password.validators = [DataRequired(message='Mật khẩu là bắt buộc')]
+        form.password.validators = [DataRequired(message='Password is required')]
         return form
 
     def edit_form(self, obj=None):
@@ -54,15 +54,15 @@ class PromotionView(AuthenticatedModelView):
     column_searchable_list = ['code']
     column_filters = ['promotion_type']
     column_labels = {
-        'code': 'Mã khuyến mãi',
-        'promotion_type': 'Loại khuyến mãi',
-        'start_date': 'Ngày bắt đầu',
-        'expire_date': 'Ngày hết hạn',
-        'availability_count': 'Số lượng',
-        'value': 'Giá trị',
-        'max_discount_amount': 'Giảm tối đa',
-        'min_order_value': 'Giá trị đơn tối thiểu',
-        'description': 'Mô tả'
+        'code': 'Promotion Code',
+        'promotion_type': 'Promotion Type',
+        'start_date': 'Start Date',
+        'expire_date': 'Expire Date',
+        'availability_count': 'Availability Count',
+        'value': 'Value',
+        'max_discount_amount': 'Max Discount Amount',
+        'min_order_value': 'Min Order Value',
+        'description': 'Description'
     }
     form_columns = ('code', 'promotion_type', 'start_date', 'expire_date', 'availability_count', 'value', 'max_discount_amount', 'min_order_value', 'description')
 
@@ -71,19 +71,27 @@ class OrdersView(AuthenticatedModelView):
     column_searchable_list = ['customer_id']
     column_filters = ['status']
     column_labels = {
-        'customer_id': 'Khách hàng',
-        'promotion_id': 'Khuyến mãi',
-        'created_date': 'Ngày tạo',
-        'sub_total_amount': 'Tổng tiền',
-        'discount_amount': 'Giảm giá',
-        'final_amount': 'Thành tiền',
-        'status': 'Trạng thái'
+        'customer_id': 'Customer',
+        'promotion_id': 'Promotion',
+        'created_date': 'Created Date',
+        'sub_total_amount': 'Sub Total Amount',
+        'discount_amount': 'Discount Amount',
+        'final_amount': 'Final Amount',
+        'status': 'Status'
     }
     form_columns = ('customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount', 'final_amount', 'status')
-    
-    
 
-admin = Admin(app=app, name='Quản trị Discounts Management')
+class LogoutView(BaseView):
+    @expose('/')
+    def index(self):
+        logout_user()
+        return redirect(url_for('index'))
+    
+    def is_accessible(self):
+        return current_user.is_authenticated
+
+admin = Admin(app=app, name='Discounts Management')
 admin.add_view(UserView(User, db.session))
 admin.add_view(PromotionView(Promotion, db.session))
 admin.add_view(OrdersView(Order, db.session))
+admin.add_view(LogoutView(name='Logout', endpoint='logout', category=None))

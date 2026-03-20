@@ -1,0 +1,24 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Đăng nhập{% endblock %}
+
+{% block content %}
+  <form method="POST" class="mx-auto" style="max-width: 400px;">
+    {% if err_msg %}
+    <div class="alert alert-danger" role="alert">
+      {{ err_msg }}
+    </div>
+    {% endif %}
+
+    <div class="mb-3">
+      <label for="phone_number" class="form-label">Số điện thoại</label>
+      <input type="tel" class="form-control" id="phone_number" name="phone_number" required>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Mật khẩu</label>
+      <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Đăng nhập</button>
+    <button type="button" class="btn btn-link" onclick="window.location.href='{{ url_for('register_view') }}'">Đăng ký</button>
+  </form>
+{% endblock %}
