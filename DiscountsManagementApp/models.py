@@ -14,7 +14,7 @@ class BaseModel(db.Model):
 class UserRole(EnumBase):
     ADMIN = 'ADMIN'
     CUSTOMER = 'CUSTOMER'
-  
+
 class PromotionType(EnumBase):
     COUPON = 'COUPON'
     VOUCHER = 'VOUCHER'

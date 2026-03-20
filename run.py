@@ -1,6 +1,7 @@
 from DiscountsManagementApp import app, db
 from DiscountsManagementApp import index, models
 from DiscountsManagementApp import admin
+from flask_login import current_user
 
 if __name__ == '__main__':
     # with app.app_context():
