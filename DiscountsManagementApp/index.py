@@ -3,10 +3,12 @@ from functools import wraps
 from flask import redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
-from DiscountsManagementApp import app, dao
-from DiscountsManagementApp.dao import check_phone_number_exists
+from DiscountsManagementApp import app, dao, db
+from DiscountsManagementApp.dao import check_phone_number_exists, get_promotion_by_code
 from DiscountsManagementApp.models import UserRole
-from DiscountsManagementApp.utils import validate_registration_data
+from DiscountsManagementApp.utils import validate_registration_data, validate_order_data, \
+    update_availability
+
 
 def role_required(*roles):
     def decorator(func):
@@ -82,9 +84,60 @@ def logout_process():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/order_create')
+
+@app.route('/order_create', methods=['GET', 'POST'])
 def order_create():
-    return render_template('order_create.html')
+    err_msg = ''
+    code = request.args.get('code')
+    amount = request.args.get('amount')
+    ptype = request.args.get('ptype')
+    page = request.args.get('page', 1)
+
+    try:
+        amount = float(amount)
+    except (ValueError, TypeError):
+        amount = None
+
+    if request.method == 'POST':
+        promotion_code = request.form.get('code')
+        sub_total_amount = request.form.get('amount', type=float)
+        promotion = None
+        user_promotion_usage = None
+        discount_amount = 0.0
+        if promotion_code:
+            promotion = get_promotion_by_code(promotion_code)
+            if promotion:
+                discount_amount = promotion.promotion_type.get_discount_calculator()(sub_total_amount,promotion.max_discount_amount, promotion.value)
+                user_promotion_usage = dao.get_user_promotion_usage(current_user.id, promotion.id)
+            is_using_promotion = True
+        else:
+            is_using_promotion = False
+
+        is_valid, error_message = validate_order_data(current_user, sub_total_amount=sub_total_amount,
+                                                      promotion=promotion, promotion_usage=user_promotion_usage,
+                                                      is_using_promotion=is_using_promotion, discount_amount=discount_amount)
+        if not is_valid:
+            err_msg = error_message
+        else:
+            try:
+                dao.create_order(
+                    customer_id=current_user.id,
+                    sub_total_amount=sub_total_amount,
+                    discount_amount=discount_amount,
+                    final_amount=float(sub_total_amount) - discount_amount,
+                    promotion_id=promotion.id if promotion else None
+                )
+                if promotion:
+                    update_availability(current_user, promotion, user_promotion_usage=user_promotion_usage, increment_usage=True)
+                return redirect(url_for('orders_history'))
+            except Exception as ex:
+                err_msg = f'Hệ thống có lỗi: {str(ex)}'
+                db.session.rollback()
+
+    promotions = dao.get_promotions(code=code, page=page, order_value=amount, ptype=ptype)
+    return render_template('order_create.html', promotions=promotions, code=code, amount=amount, ptype=ptype,
+                           err_msg=err_msg)
+
 
 @app.route('/orders_history')
 def orders_history():

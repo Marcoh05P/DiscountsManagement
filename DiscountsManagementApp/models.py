@@ -18,7 +18,15 @@ class UserRole(EnumBase):
 class PromotionType(EnumBase):
     COUPON = 'COUPON'
     VOUCHER = 'VOUCHER'
-    
+
+    def get_discount_calculator(self):
+        calculators = {
+            PromotionType.COUPON: lambda sub_total, max_discount, value: min(sub_total * (value / 100), max_discount if max_discount else sub_total),
+            PromotionType.VOUCHER: lambda sub_total, max_discount, value: value
+        }
+        return calculators[self]
+
+
 class OrderStatus(EnumBase):
     PENDING = 'PENDING'
     COMPLETED = 'COMPLETED'
