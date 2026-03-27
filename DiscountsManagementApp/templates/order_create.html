@@ -1,20 +1,208 @@
 {% extends 'layout/base.html' %}
 
 {% block header_nav_items %}
-    <li class="nav-item">
+<li class="nav-item">
     <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Trang chủ</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('order_create') }}">Tạo đơn hàng</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('orders_history') }}">Lịch sử đơn hàng</a>
-    </li>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('order_create') }}">Tạo đơn hàng</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('orders_history') }}">Lịch sử đơn hàng</a>
+</li>
 {% endblock %}
 
 {% block content %}
-    <div class="text-center">
-        <h1>Tạo đơn hàng</h1>
-        <p class="lead">Tạo mới một đơn hàng cho khách hàng</p>
+<div class="text-center">
+    <h1>Tạo đơn hàng</h1>
+    <p class="lead">Tạo mới một đơn hàng cho khách hàng</p>
+</div>
+{% if err_msg %}
+<div class="alert alert-danger" role="alert">
+    {{ err_msg }}
+</div>
+{% endif %}
+<form class="row">
+    <div class="col-md-3 mb-3">
+        <div class="card border border-primary h-100">
+            <div class="card-header bg-primary">
+                <h6 class="mb-0 text-white text-center fw-bold">NHẬP ĐƠN HÀNG
+                </h6>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="d-flex w-100 mx-auto mb-4">
+                    <input class="form-control me-2" name="amount" placeholder="Giá tiền đơn hàng..."
+                           value="{% if amount %}{{ amount }}{% endif %}" type="number"
+                           onchange="updateOrderInfo();" required>
+                    <h3 class="mb-0 fw-bold text-danger ms-2">VNĐ</h3>
+                </div>
+            </div>
+        </div>
     </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border border-success h-100">
+            <div class="card-header bg-success">
+                <h6 class="mb-0 text-white text-center fw-bold">MÃ GIẢM GIÁ</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex w-100 mx-auto mb-4">
+                    <input class="form-control me-2" name="code" id="code" placeholder="Nhập mã giảm giá..."
+                           value="{% if code %}{{ code }}{% endif %}">
+                    <button class="btn btn-success" type="submit" onclick="handleApplyBtn(event)">Áp dụng</button>
+                </div>
+                <div class="d-flex w-100 mx-auto mb-4 justify-content-center">
+                    <a href="{{ url_for('order_create') }}"
+                       class="rounded border border-3 btn me-2{% if not ptype or ptype not in ['VOUCHER', 'COUPON'] %} selected border-success
+                        {% else %} border-muted
+                        {% endif %}">Tất cả</a>
+                    <a href="{{ url_for('order_create', ptype='COUPON') }}"
+                       class="rounded border border-3 btn me-2{% if ptype == 'COUPON' %} selected border-success
+                        {% else %} border-muted
+                        {% endif %}">Coupon</a>
+                    <a href="{{ url_for('order_create', ptype='VOUCHER') }}"
+                       class="rounded border border-3 btn{% if ptype == 'VOUCHER' %} selected border-success
+                        {% else %} border-muted
+                        {% endif %}">Voucher</a>
+                </div>
+                {% if not promotions or not promotions.items %}
+                <div class="alert alert-warning text-center" role="alert">
+                    Không tìm thấy mã giảm giá phù hợp.
+                </div>
+                {% else %}
+                {% for pr in promotions.items %}
+                <div class="d-flex align-items-center promotion-item p-2 mb-3 rounded coach-item border border-3
+                 {% if code and code == pr.code %} selected border-success {% else %}
+                 border-muted {% endif %}"
+                     id="{{ pr.code }}" onclick="choosePromotion(this)">
+                    <div>
+                        <input type="hidden" name="discount-value" value="{{ pr.value }}" disabled>
+                        <input type="hidden" name="max-discount-amount" value="{{ pr.max_discount_amount }}" disabled>
+                        <h4 class="mb-0 fw-bold text-danger">
+                            GIẢM {% if pr.value > 1.0 %} {{ "{:,.0f}".format(pr.value) }} VNĐ
+                            {% else %} {{ "{:.0%}".format(pr.value) }} {% endif %}
+                        </h4>
+                        <p class="text-muted mb-0">Mã: {{pr.code }}</p>
+                        <p class="text-muted mb-0">Hết hạn: {{
+                            pr.expire_date.strftime("%d/%m/%Y %H:%M") }}</p>
+                        <p class="text-muted mb-0">Số lượt dùng còn lại: {{
+                            pr.availability_count }}</p>
+                        <p class="text-muted mb-0">Số tiền giảm tối đa: {% if pr.max_discount_amount %} {{
+                            "{:,.0f}".format(pr.max_discount_amount) }} VNĐ
+                            {% else %} Không giới hạn {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% if promotions and promotions.pages>1 %}
+                <ul class="pagination mt-3">
+                    {% for i in range(1, (pages+1)) %}
+                    <li class="page-item {% if promotions and promotions.page == i %}active{% endif %}"><a
+                            class="page-link" href="{{ url_for('order_create', page=i) }}">{{i}}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 mb-3">
+        <div class="card border border-info h-100">
+            <div class="card-header bg-info">
+                <h6 class="mb-0 text-white text-center fw-bold">THÔNG TIN ĐƠN HÀNG</h6>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="d-none" id="order-info">
+                    <div class="d-flex w-100 mx-auto mb-4">
+                        <h3 class="mb-0 fw-bold me-2">Tổng tiền: </h3>
+                        <h3 class="mb-0 fw-bold" id="init-amount-field"></h3>
+                    </div>
+                    <div class="d-flex w-100 mx-auto mb-4">
+                        <h3 class="mb-0 fw-bold me-2">Số tiền được giảm: </h3>
+                        <h3 class="mb-0 fw-bold" id="discount-amount-field"></h3>
+                    </div>
+                    <div class="d-flex w-100 mx-auto mb-4">
+                        <h3 class="mb-0 fw-bold text-success me-2">THÀNH TIỀN: </h3>
+                        <h3 class="mb-0 fw-bold text-danger" id="final-amount-field"></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button class="btn btn-primary btn-lg w-100 {% if not amount %} disabled {% endif %}" id="create-order-btn"
+            type="submit" onclick="handleCreateBtn(event)">Tạo đơn hàng
+    </button>
+</form>
+
+<script>
+    DOMContentLoadedEvent = document.addEventListener('DOMContentLoaded', function () {
+        updateOrderInfo();
+    });
+
+    function handleApplyBtn(btn) {
+        btn.preventDefault();
+        const form = document.querySelector('form');
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('ptype');
+        currentUrl.searchParams.delete('page');
+        const cleanedQuery = currentUrl.searchParams.toString();
+        form.action = cleanedQuery ? `${currentUrl.pathname}?${cleanedQuery}` : currentUrl.pathname;
+        form.submit();
+    }
+
+    function handleCreateBtn(event) {
+        event.preventDefault();
+        const form = document.querySelector('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('order_create') }}";
+        form.submit();
+    }
+
+    function choosePromotion(object) {
+        if (object.classList.contains('selected')) {
+            object.classList.remove('selected', 'border-success');
+            object.classList.add('border-muted');
+            document.getElementById('code').value = '';
+        } else {
+            let selectedPromotion = document.querySelector('.promotion-item.selected');
+            if (selectedPromotion) {
+                selectedPromotion.classList.remove('selected', 'border-success');
+                selectedPromotion.classList.add('border-muted');
+                document.getElementById('code').value = '';
+            }
+            object.classList.add('selected', 'border-success');
+            document.getElementById('code').value = object.id;
+        }
+           updateOrderInfo(object);
+    }
+
+    function validateInput() {
+        const initAmount = document.querySelector('input[name="amount"]').value;
+        const btn = document.getElementById('create-order-btn');
+        if (!initAmount || initAmount === '' || Number(initAmount) <= 0) {
+            btn.classList.add('disabled');
+            document.getElementById('order-info').classList.add('d-none');
+        } else {
+            btn.classList.remove('disabled');
+            document.getElementById('order-info').classList.remove('d-none');
+        }
+    }
+
+    function updateOrderInfo(object) {
+        validateInput();
+        const initAmount = document.querySelector('input[name="amount"]').value;
+        document.getElementById('init-amount-field').innerText = initAmount ? parseInt(initAmount).toLocaleString('vi-VN') + ' VNĐ' : '';
+        discountValue = object ? parseFloat(object.querySelector('input[name="discount-value"]').value) : 0;
+        maxDiscountAmount = object ? parseFloat(object.querySelector('input[name="max-discount-amount"]').value) : 0;
+        discountAmount = 0;
+        if (discountValue > 1.0) {
+            discountAmount = maxDiscountAmount > 0 ? Math.min(discountValue, maxDiscountAmount) : discountValue;
+        } else {
+            discountAmount = maxDiscountAmount > 0 ? Math.min(initAmount * discountValue, maxDiscountAmount) : initAmount * discountValue;
+        }
+        document.getElementById('discount-amount-field').innerText = discountAmount.toLocaleString('vi-VN') + ' VNĐ';
+        document.getElementById('final-amount-field').innerText = (initAmount - discountAmount).toLocaleString('vi-VN') + ' VNĐ';
+
+    }
+</script>
 {% endblock %}
