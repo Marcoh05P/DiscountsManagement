@@ -28,7 +28,12 @@ def _default_redirect_for_role(user):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    kw = request.args.get('kw')
+    sort = request.args.get('sort')
+    page = request.args.get('page', 1, type=int)
+    promotions = dao.get_promotions(kw, sort_by=sort, page=page)
+    
+    return render_template("index.html", promotions=promotions)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_view():
@@ -91,7 +96,7 @@ def order_create():
     code = request.args.get('code')
     amount = request.args.get('amount')
     ptype = request.args.get('ptype')
-    page = request.args.get('page', 1)
+    page = request.args.get('page', 1, type=int)
 
     try:
         amount = float(amount)
@@ -140,5 +145,9 @@ def order_create():
 
 
 @app.route('/orders_history')
+@login_required
 def orders_history():
-    return render_template('orders_history.html')
+    page = request.args.get('page', 1, type=int)
+    sort = request.args.get('sort', 'newest')
+    orders = dao.get_orders_by_customer(current_user.id, page=page, sort_by=sort)
+    return render_template('orders_history.html', orders=orders, sort=sort)

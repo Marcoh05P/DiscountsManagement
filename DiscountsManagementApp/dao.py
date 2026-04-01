@@ -1,5 +1,6 @@
 import hashlib
 from datetime import datetime
+from sqlalchemy import func, or_
 
 from DiscountsManagementApp.models import User, UserRole, Promotion, Order, UserPromotionUsage
 from DiscountsManagementApp import db, app
@@ -60,14 +61,20 @@ def update_order(order_id, promotion_id=None, discount_amount=None, final_amount
 
 
 def get_promotion_by_code(code):
-    return Promotion.query.filter(Promotion.code.__eq__(code.strip())).first()
+    return Promotion.query.filter(Promotion.code.contains(code.strip())).first()
 
 
-def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_available=True, page=None):
-    query = Promotion.query
+def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_available=True, page=None, sort_by=None):
+    used_count = func.coalesce(func.sum(UserPromotionUsage.usage_count), 0)
+    remaining_count = (Promotion.availability_count - used_count).label('remaining_availability_count')
+
+    query = db.session.query(Promotion, remaining_count).outerjoin(
+        UserPromotionUsage,
+        UserPromotionUsage.promotion_id == Promotion.id
+    ).group_by(Promotion.id).filter(Promotion.start_date <= datetime.now(), Promotion.expire_date >= datetime.now())
 
     if code:
-        query = query.filter(Promotion.code.__eq__(code.strip()))
+        query = query.filter(Promotion.code.contains(code.strip()))
 
     if expired:
         query = query.filter(Promotion.expire_date < datetime.now())
@@ -76,14 +83,33 @@ def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_av
         query = query.filter(Promotion.promotion_type == ptype)
 
     if order_value and order_value > 0:
-        query = query.filter((Promotion.min_order_value is None) or (Promotion.min_order_value <= order_value))
+        query = query.filter(or_(Promotion.min_order_value.is_(None), Promotion.min_order_value <= order_value))
 
     if is_available:
-        query = query.filter(Promotion.availability_count > 0)
+        query = query.having((Promotion.availability_count - used_count) > 0)
 
-    if not page:
+    if sort_by == 'newest':
+        query = query.order_by(Promotion.start_date.desc())
+        
+    elif sort_by == 'expire_soon':
+        query = query.order_by(Promotion.expire_date.asc())
+
+    try:
+        page = int(page)
+    except (TypeError, ValueError):
         page = 1
-    return query.paginate(page=page, per_page=app.config['PAGE_SIZE'])
+
+    if page < 1:
+        page = 1
+
+    pagination = query.paginate(page=page, per_page=app.config['PAGE_SIZE'])
+    promotions = []
+    for promotion, remaining_availability_count in pagination.items:
+        promotion.remaining_availability_count = max(0, int(remaining_availability_count or 0))
+        promotions.append(promotion)
+
+    pagination.items = promotions
+    return pagination
 
 
 def create_user_promotion_usage(user_id, promotion_id):
@@ -95,3 +121,15 @@ def create_user_promotion_usage(user_id, promotion_id):
 
 def get_user_promotion_usage(user_id, promotion_id):
     return UserPromotionUsage.query.filter_by(user_id=user_id, promotion_id=promotion_id).first()
+
+def get_orders_by_customer(customer_id, page=None, sort_by='newest'):
+    query = Order.query.filter_by(customer_id=customer_id)
+
+    if sort_by == 'oldest':
+        query = query.order_by(Order.created_date.asc())
+    else:
+        query = query.order_by(Order.created_date.desc())
+
+    if not page:
+        page = 1
+    return query.paginate(page=page, per_page=app.config['PAGE_SIZE'])

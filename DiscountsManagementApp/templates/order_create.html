@@ -85,7 +85,7 @@
                         <p class="text-muted mb-0">Hết hạn: {{
                             pr.expire_date.strftime("%d/%m/%Y %H:%M") }}</p>
                         <p class="text-muted mb-0">Số lượt dùng còn lại: {{
-                            pr.availability_count }}</p>
+                            pr.remaining_availability_count if pr.remaining_availability_count is defined else pr.availability_count }}</p>
                         <p class="text-muted mb-0">Số tiền giảm tối đa: {% if pr.max_discount_amount %} {{
                             "{:,.0f}".format(pr.max_discount_amount) }} VNĐ
                             {% else %} Không giới hạn {% endif %}
@@ -95,13 +95,25 @@
                 {% endfor %}
                 {% endif %}
                 {% if promotions and promotions.pages>1 %}
-                <ul class="pagination mt-3">
-                    {% for i in range(1, (pages+1)) %}
-                    <li class="page-item {% if promotions and promotions.page == i %}active{% endif %}"><a
-                            class="page-link" href="{{ url_for('order_create', page=i) }}">{{i}}</a>
+                <nav class="mt-3" aria-label="Order promotion pagination">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not promotions.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('order_create', page=promotions.prev_num, code=code, amount=amount, ptype=ptype) if promotions.has_prev else '#' }}">Trước</a>
                     </li>
+                    {% for i in promotions.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+                    {% if i %}
+                    <li class="page-item {% if promotions.page == i %}active{% endif %}"><a
+                            class="page-link" href="{{ url_for('order_create', page=i, code=code, amount=amount, ptype=ptype) }}">{{ i }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
                     {% endfor %}
+                    <li class="page-item {% if not promotions.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('order_create', page=promotions.next_num, code=code, amount=amount, ptype=ptype) if promotions.has_next else '#' }}">Sau</a>
+                    </li>
                 </ul>
+                </nav>
                 {% endif %}
             </div>
         </div>

@@ -2,19 +2,95 @@
 
 {% block header_nav_items %}
     <li class="nav-item">
-    <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Trang chủ</a>
+    <a class="nav-link" href="{{ url_for('index') }}">Trang chủ</a>
     </li>
     <li class="nav-item">
         <a class="nav-link" href="{{ url_for('order_create') }}">Tạo đơn hàng</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('orders_history') }}">Lịch sử đơn hàng</a>
+        <a class="nav-link active" aria-current="page" href="{{ url_for('orders_history') }}">Lịch sử đơn hàng</a>
     </li>
 {% endblock %}
 
 {% block content %}
-    <div class="text-center">
-        <h1>Lịch sử đơn hàng</h1>
-        <p class="lead">Xem lại các đơn hàng đã tạo</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Lịch sử đơn hàng</h1>
+            <p class="text-muted mb-0">Xem lại các đơn hàng khách hàng đã đặt</p>
+        </div>
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <label for="sort" class="form-label mb-0 fw-semibold">Sắp xếp theo ngày đặt:</label>
+            <select class="form-select" id="sort" name="sort" onchange="this.form.submit()">
+                <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Mới nhất</option>
+                <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Cũ nhất</option>
+            </select>
+        </form>
     </div>
+
+    {% if not orders or not orders.items %}
+    <div class="alert alert-info" role="alert">
+        Bạn chưa có đơn hàng nào.
+    </div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle bg-white">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Mã đơn</th>
+                    <th scope="col">Ngày đặt</th>
+                    <th scope="col">Mã giảm giá</th>
+                    <th scope="col" class="text-end">Tạm tính</th>
+                    <th scope="col" class="text-end">Giảm giá</th>
+                    <th scope="col" class="text-end">Thành tiền</th>
+                    <th scope="col">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders.items %}
+                <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.created_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ order.promotion.code if order.promotion else '-' }}</td>
+                    <td class="text-end">{{ '{:,.0f}'.format(order.sub_total_amount) }} VNĐ</td>
+                    <td class="text-end text-danger">-{{ '{:,.0f}'.format(order.discount_amount) }} VNĐ</td>
+                    <td class="text-end fw-semibold text-success">{{ '{:,.0f}'.format(order.final_amount) }} VNĐ</td>
+                    <td>
+                        {% if order.status.name == 'COMPLETED' %}
+                        <span class="badge text-bg-success">Hoàn thành</span>
+                        {% elif order.status.name == 'CANCELLED' %}
+                        <span class="badge text-bg-danger">Đã hủy</span>
+                        {% else %}
+                        <span class="badge text-bg-warning">Chờ xử lý</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if orders.pages > 1 %}
+    <nav class="mt-4" aria-label="Orders pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not orders.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('orders_history', page=orders.prev_num, sort=sort) if orders.has_prev else '#' }}">Trước</a>
+            </li>
+
+            {% for page_num in orders.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == orders.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('orders_history', page=page_num, sort=sort) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not orders.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('orders_history', page=orders.next_num, sort=sort) if orders.has_next else '#' }}">Sau</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+    {% endif %}
 {% endblock %}
