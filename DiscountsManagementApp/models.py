@@ -18,10 +18,13 @@ class UserRole(EnumBase):
 class PromotionType(EnumBase):
     COUPON = 'COUPON'
     VOUCHER = 'VOUCHER'
+    
+    def __str__(self):
+        return self.value
 
     def get_discount_calculator(self):
         calculators = {
-            PromotionType.COUPON: lambda sub_total, max_discount, value: min(sub_total * (value / 100), max_discount if max_discount else sub_total),
+            PromotionType.COUPON: lambda sub_total, max_discount, value: min(sub_total * value, max_discount if max_discount else sub_total),
             PromotionType.VOUCHER: lambda sub_total, max_discount, value: value
         }
         return calculators[self]

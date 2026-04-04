@@ -14,11 +14,11 @@ def auth_user(phone_number, password):
         return None
 
     password_hash = str(hashlib.md5(password.strip().encode('utf-8')).hexdigest())
-    return User.query.filter(User.phone_number == phone_number.strip(),
+    return User.query.filter(User.active.is_(True), User.phone_number == phone_number.strip(),
                             User.password_hash == password_hash).first()
     
 def check_phone_number_exists(phone_number):
-    return User.query.filter_by(phone_number=phone_number).first() is not None
+    return User.query.filter(User.active.is_(True), User.phone_number == phone_number).first() is not None
 
 def add_user(phone_number, password, full_name, role=UserRole.CUSTOMER):
     password_hash = str(hashlib.md5(password.strip().encode('utf-8')).hexdigest())
@@ -26,8 +26,13 @@ def add_user(phone_number, password, full_name, role=UserRole.CUSTOMER):
                 password_hash=password_hash,
                 full_name=full_name,
                 role=role)
-    db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.add(user)
+        db.session.commit()
+        return user
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def create_order(customer_id, sub_total_amount, discount_amount, final_amount, promotion_id=None):
@@ -61,7 +66,7 @@ def update_order(order_id, promotion_id=None, discount_amount=None, final_amount
 
 
 def get_promotion_by_code(code):
-    return Promotion.query.filter(Promotion.code.contains(code.strip())).first()
+    return Promotion.query.filter(Promotion.code.contains(code.strip()), Promotion.active.is_(True)).first()
 
 
 def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_available=True, page=None, sort_by=None):
@@ -71,7 +76,7 @@ def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_av
     query = db.session.query(Promotion, remaining_count).outerjoin(
         UserPromotionUsage,
         UserPromotionUsage.promotion_id == Promotion.id
-    ).group_by(Promotion.id).filter(Promotion.start_date <= datetime.now(), Promotion.expire_date >= datetime.now())
+    ).group_by(Promotion.id).filter(Promotion.active.is_(True), Promotion.start_date <= datetime.now(), Promotion.expire_date >= datetime.now())
 
     if code:
         query = query.filter(Promotion.code.contains(code.strip()))
