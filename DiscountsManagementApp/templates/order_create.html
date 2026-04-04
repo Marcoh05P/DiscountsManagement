@@ -2,10 +2,10 @@
 
 {% block header_nav_items %}
 <li class="nav-item">
-    <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Trang chủ</a>
+    <a class="nav-link" href="{{ url_for('index') }}">Trang chủ</a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="{{ url_for('order_create') }}">Tạo đơn hàng</a>
+    <a class="nav-link active" aria-current="page" href="{{ url_for('order_create') }}">Tạo đơn hàng</a>
 </li>
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('orders_history') }}">Lịch sử đơn hàng</a>
@@ -69,11 +69,12 @@
                     Không tìm thấy mã giảm giá phù hợp.
                 </div>
                 {% else %}
+                <div class="overflow-auto" style="height: 300px;">
                 {% for pr in promotions.items %}
                 <div class="d-flex align-items-center promotion-item p-2 mb-3 rounded coach-item border border-3
-                 {% if code and code == pr.code %} selected border-success {% else %}
-                 border-muted {% endif %}"
-                     id="{{ pr.code }}" onclick="choosePromotion(this)">
+                {% if code and code == pr.code %} selected border-success {% else %}
+                border-muted {% endif %}"
+                    id="{{ pr.code }}" onclick="choosePromotion(this)">
                     <div>
                         <input type="hidden" name="discount-value" value="{{ pr.value }}" disabled>
                         <input type="hidden" name="max-discount-amount" value="{{ pr.max_discount_amount }}" disabled>
@@ -93,6 +94,7 @@
                     </div>
                 </div>
                 {% endfor %}
+                </div>
                 {% endif %}
                 {% if promotions and promotions.pages>1 %}
                 <nav class="mt-3" aria-label="Order promotion pagination">

@@ -4,7 +4,7 @@ from DiscountsManagementApp import db
 from DiscountsManagementApp.dao import create_user_promotion_usage
 from wtforms.validators import ValidationError
 
-from DiscountsManagementApp.models import PromotionType
+from DiscountsManagementApp.models import Order, PromotionType
 
 def is_coupon(value):
     if isinstance(value, PromotionType):
@@ -98,3 +98,7 @@ def validate_password(form, field):
     for is_valid, error_message in checks:
         if not is_valid:
             raise ValidationError(error_message)
+        
+def is_existing_order_using_promotion(promotion):
+    return Order.query.filter(Order.promotion_id == promotion.id, Order.status == 'PENDING').first() is not None
+    

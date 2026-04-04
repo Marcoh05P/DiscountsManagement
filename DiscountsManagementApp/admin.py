@@ -45,6 +45,7 @@ class UserView(AuthenticatedModelView):
 
     def edit_form(self, obj=None):
         form = super().edit_form(obj)
+        form.role.render_kw = {'style': 'pointer-events:none;background-color:#eeeeee;', 'tabindex': '-1'}
         form.password.validators = [Optional(), utils.validate_password]
         return form
 
@@ -158,6 +159,8 @@ class PromotionView(AuthenticatedModelView):
 
     def delete_model(self, model):
         try:
+            if(utils.is_existing_order_using_promotion(model)):
+                raise ValidationError('Cannot delete promotion because there are existing orders using it.')
             model.active = False
             db.session.add(model)
             db.session.commit()
@@ -168,6 +171,7 @@ class PromotionView(AuthenticatedModelView):
             return False
 
 class OrdersView(AuthenticatedModelView):
+    can_create = False
     column_list = ('id', 'customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount', 'final_amount', 'status')
     column_searchable_list = ['customer_id']
     column_filters = ['status']
@@ -181,6 +185,16 @@ class OrdersView(AuthenticatedModelView):
         'status': 'Status'
     }
     form_columns = ('customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount', 'final_amount', 'status')
+    
+    def edit_form(self, obj = None):
+        form = super().edit_form(obj)
+        form.customer_id.render_kw = {'readonly': True}
+        form.promotion_id.render_kw = {'readonly': True}
+        form.created_date.render_kw = {'readonly': True}
+        form.sub_total_amount.render_kw = {'readonly': True}
+        form.discount_amount.render_kw = {'readonly': True}
+        form.final_amount.render_kw = {'readonly': True}
+        return form
 
 class LogoutView(BaseView):
     @expose('/')

@@ -37,10 +37,10 @@ def add_user(phone_number, password, full_name, role=UserRole.CUSTOMER):
 
 def create_order(customer_id, sub_total_amount, discount_amount, final_amount, promotion_id=None):
     order = Order(customer_id=customer_id,
-                  promotion_id=promotion_id,
-                  sub_total_amount=sub_total_amount,
-                  discount_amount=discount_amount,
-                  final_amount=final_amount)
+                promotion_id=promotion_id,
+                sub_total_amount=sub_total_amount,
+                discount_amount=discount_amount,
+                final_amount=final_amount)
     db.session.add(order)
     db.session.commit()
     return order
