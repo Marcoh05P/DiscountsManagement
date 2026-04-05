@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from DiscountsManagementApp import db
@@ -6,10 +7,20 @@ from wtforms.validators import ValidationError
 
 from DiscountsManagementApp.models import Order, PromotionType
 
+
 def is_coupon(value):
     if isinstance(value, PromotionType):
         return value == PromotionType.COUPON
     return str(value) == PromotionType.COUPON.value
+
+
+def validate_password_strength(password):
+    pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/]).{8,}$"
+    if not re.match(pattern, password):
+        return False
+
+    return True
+
 
 def validate_registration_data(full_name, phone_number, password, confirm):
     if not full_name or not full_name.strip():
@@ -18,12 +29,17 @@ def validate_registration_data(full_name, phone_number, password, confirm):
         return False, 'Số điện thoại là bắt buộc!'
     if not password:
         return False, 'Mật khẩu là bắt buộc!'
+    else:
+        password = password.strip()
+        if not validate_password_strength(password):
+            return False, 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.'
     if password != confirm:
         return False, 'Mật khẩu xác nhận không khớp!'
     return True, ''
 
 
-def validate_order_data(user, sub_total_amount=None, promotion=None, promotion_usage=None, is_using_promotion=False, discount_amount=None):
+def validate_order_data(user, sub_total_amount=None, promotion=None, promotion_usage=None, is_using_promotion=False,
+                        discount_amount=None):
     if sub_total_amount is None or sub_total_amount <= 0:
         return False, 'Giá trị đơn hàng không hợp lệ!'
 
@@ -56,11 +72,13 @@ def update_availability(user, promotion, user_promotion_usage=None, increment_us
 
     db.session.commit()
 
+
 def validate_dates(form, field):
     if form.start_date.data and field.data:
         if field.data <= form.start_date.data:
             raise ValidationError('Ngày hết hạn phải sau ngày bắt đầu.')
-        
+
+
 def validate_promotion_value(form, field):
     value = field.data
     if value is None or value <= 0:
@@ -68,8 +86,9 @@ def validate_promotion_value(form, field):
     if is_coupon(form.promotion_type.data) and value > 0.5:
         raise ValidationError('For COUPON type, value must be at most 0.5.')
     elif not is_coupon(form.promotion_type.data) and value < 1000:
-            raise ValidationError('For VOUCHER type, value must be at least 1000.')
-    
+        raise ValidationError('For VOUCHER type, value must be at least 1000.')
+
+
 def validate_max_discount_amount(form, field):
     value = field.data
     if is_coupon(form.promotion_type.data):
@@ -79,35 +98,28 @@ def validate_max_discount_amount(form, field):
             min_order_value = form.min_order_value.data
             promotion_value = form.value.data
             if min_order_value and promotion_value and value < (min_order_value * promotion_value):
-                raise ValidationError('Max discount amount should be at least equal to the discount calculated from min order value and promotion value for COUPON type.')
+                raise ValidationError(
+                    'Max discount amount should be at least equal to the discount calculated from min order value and promotion value for COUPON type.')
     else:
         if value is not None and value != 0:
             raise ValidationError('Max discount amount should be 0 for VOUCHER type.')
 
+
 def validate_phone_number(form, field):
     phone_number = field.data.strip()
     if not phone_number.isdigit() or len(phone_number) < 10:
-        raise ValidationError('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại từ 10 chữ số và chỉ chứa chữ số.')
-    
+        raise ValidationError(
+            'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại từ 10 chữ số và chỉ chứa chữ số.')
+
+
 def validate_password(form, field):
     password = (field.data or '').strip()
-    special_chars = set('!@#$%^&*()_+-=[]{}|;:,.<>?/')
 
-    checks = [
-        (len(password) >= 8, 'Mật khẩu phải có ít nhất 8 ký tự.'),
-        (any(char.isdigit() for char in password), 'Mật khẩu phải chứa ít nhất một chữ số.'),
-        (any(char.isupper() for char in password), 'Mật khẩu phải chứa ít nhất một chữ hoa.'),
-        (any(char.islower() for char in password), 'Mật khẩu phải chứa ít nhất một chữ thường.'),
-        (
-            any(char in special_chars for char in password),
-            'Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*()_+-=[]{}|;:,.<>?/).'
+    if not validate_password_strength(password):
+        raise ValidationError(
+            "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt."
         )
-    ]
 
-    for is_valid, error_message in checks:
-        if not is_valid:
-            raise ValidationError(error_message)
-        
+
 def is_existing_order_using_promotion(promotion):
     return Order.query.filter(Order.promotion_id == promotion.id, Order.status == 'PENDING').first() is not None
-    
