@@ -1,6 +1,8 @@
 import hashlib
+from datetime import datetime
+
 from flask_admin import Admin, BaseView, expose
-from flask_admin.contrib.sqla import ModelView
+from flask_admin.contrib.sqla import ModelView, typefmt
 from flask_login import logout_user, current_user
 from flask import redirect, url_for, request
 from wtforms import PasswordField
@@ -8,6 +10,17 @@ from wtforms.validators import DataRequired, Optional
 from DiscountsManagementApp import app, db, dao, utils
 from .models import Promotion, User, UserRole, Order, PromotionType, OrderStatus
 from wtforms.validators import DataRequired, NumberRange, ValidationError
+
+
+def date_format(view, value):
+    return value.strftime('%d/%m/%Y %H:%M:%S')
+
+
+DATETIME_FORMATTERS = dict(typefmt.BASE_FORMATTERS)
+DATETIME_FORMATTERS.update({
+    datetime: date_format
+})
+
 
 class AuthenticatedModelView(ModelView):
     def is_accessible(self):
@@ -19,6 +32,8 @@ class AuthenticatedModelView(ModelView):
     def handle_view_exception(self, exc):
         db.session.rollback()
         return super().handle_view_exception(exc)
+
+    column_type_formatters = DATETIME_FORMATTERS
 
 class UserView(AuthenticatedModelView):
     column_list = ('id', 'full_name', 'phone_number', 'role', 'active')
@@ -56,7 +71,7 @@ class UserView(AuthenticatedModelView):
         raw_password = (form.password.data or '').strip()
         if raw_password:
             model.password_hash = str(hashlib.md5(raw_password.encode('utf-8')).hexdigest())
-            
+
     def delete_model(self, model):
         try:
             model.active = False
@@ -68,8 +83,10 @@ class UserView(AuthenticatedModelView):
                 raise
             return False
 
+
 class PromotionView(AuthenticatedModelView):
-    column_list = ('id', 'code', 'promotion_type', 'start_date', 'expire_date', 'availability_count', 'value', 'max_discount_amount', 'min_order_value', 'description')
+    column_list = ('id', 'code', 'promotion_type', 'start_date', 'expire_date', 'availability_count', 'value',
+                   'max_discount_amount', 'min_order_value', 'description')
     column_searchable_list = ['code']
     column_filters = ['promotion_type']
     column_labels = {
@@ -83,20 +100,31 @@ class PromotionView(AuthenticatedModelView):
         'min_order_value': 'Min Order Value',
         'description': 'Description'
     }
-    form_columns = ('code', 'promotion_type', 'start_date', 'expire_date', 'availability_count', 'value', 'max_discount_amount', 'min_order_value', 'description')
+    form_columns = ('code', 'promotion_type', 'start_date', 'expire_date', 'availability_count', 'value',
+                    'max_discount_amount', 'min_order_value', 'description')
+
+    form_args = {
+        'start_date': {'format': '%d/%m/%Y %H:%M'},
+        'expire_date': {'format': '%d/%m/%Y %H:%M'},
+    }
+    form_widget_args = {
+        'start_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
+        'expire_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
+    }
 
     def get_query(self):
         return super().get_query().filter(Promotion.active.is_(True))
 
     def get_count_query(self):
         return super().get_count_query().filter(Promotion.active.is_(True))
-    
+
     def create_form(self, obj=None):
         form = super().create_form(obj)
         form.code.validators = [DataRequired(message='Promotion code is required')]
         form.start_date.validators = [DataRequired(message='Start date is required')]
         form.expire_date.validators = [DataRequired(message='Expire date is required'), utils.validate_dates]
-        form.value.validators = [NumberRange(min=0, message='Value must be non-negative'), utils.validate_promotion_value]
+        form.value.validators = [NumberRange(min=0, message='Value must be non-negative'),
+                                 utils.validate_promotion_value]
         form.availability_count.validators = [NumberRange(min=1, message='Availability count must be at least 1')]
         form.max_discount_amount.render_kw = {}
         form.max_discount_amount.validators = [
@@ -105,7 +133,7 @@ class PromotionView(AuthenticatedModelView):
         ]
         form.min_order_value.validators = [NumberRange(min=0, message='Min order value must be non-negative')]
         return form
-    
+
     def edit_form(self, obj=None):
         form = super().edit_form(obj)
         form.code.render_kw = {'readonly': True}
@@ -117,7 +145,8 @@ class PromotionView(AuthenticatedModelView):
         }
         form.start_date.validators = [DataRequired(message='Start date is required')]
         form.expire_date.validators = [DataRequired(message='Expire date is required'), utils.validate_dates]
-        form.value.validators = [NumberRange(min=0, message='Value must be non-negative'), utils.validate_promotion_value]
+        form.value.validators = [NumberRange(min=0, message='Value must be non-negative'),
+                                 utils.validate_promotion_value]
         form.availability_count.validators = [NumberRange(min=1, message='Availability count must be at least 1')]
         form.min_order_value.validators = [NumberRange(min=0, message='Min order value must be non-negative')]
         if utils.is_coupon(form.promotion_type.data):
@@ -130,7 +159,7 @@ class PromotionView(AuthenticatedModelView):
         else:
             form.max_discount_amount.render_kw = {'readonly': True}
         return form
-    
+
     def on_model_change(self, form, model, is_created):
         if not is_created:
             existing = Promotion.query.get(model.id)
@@ -149,7 +178,7 @@ class PromotionView(AuthenticatedModelView):
                 raise ValidationError('Max discount amount is required for COUPON type.')
         else:
             model.max_discount_amount = model.value
-        
+
     def on_form_prefill(self, form, id):
         form.value.data = float(form.value.data) if form.value.data is not None else None
         if form.max_discount_amount.data is not None:
@@ -159,7 +188,7 @@ class PromotionView(AuthenticatedModelView):
 
     def delete_model(self, model):
         try:
-            if(utils.is_existing_order_using_promotion(model)):
+            if (utils.is_existing_order_using_promotion(model)):
                 raise ValidationError('Cannot delete promotion because there are existing orders using it.')
             model.active = False
             db.session.add(model)
@@ -170,9 +199,11 @@ class PromotionView(AuthenticatedModelView):
                 raise
             return False
 
+
 class OrdersView(AuthenticatedModelView):
     can_create = False
-    column_list = ('id', 'customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount', 'final_amount', 'status')
+    column_list = ('id', 'customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount',
+                   'final_amount', 'status')
     column_searchable_list = ['customer_id']
     column_filters = ['status']
     column_labels = {
@@ -184,9 +215,19 @@ class OrdersView(AuthenticatedModelView):
         'final_amount': 'Final Amount',
         'status': 'Status'
     }
-    form_columns = ('customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount', 'final_amount', 'status')
-    
-    def edit_form(self, obj = None):
+    form_columns = ('customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount',
+                    'final_amount', 'status')
+
+    form_args = {
+        'start_date': {'format': '%d/%m/%Y %H:%M'},
+        'expire_date': {'format': '%d/%m/%Y %H:%M'},
+    }
+    form_widget_args = {
+        'start_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
+        'expire_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
+    }
+
+    def edit_form(self, obj=None):
         form = super().edit_form(obj)
         form.customer_id.render_kw = {'readonly': True}
         form.promotion_id.render_kw = {'readonly': True}
@@ -196,14 +237,16 @@ class OrdersView(AuthenticatedModelView):
         form.final_amount.render_kw = {'readonly': True}
         return form
 
+
 class LogoutView(BaseView):
     @expose('/')
     def index(self):
         logout_user()
         return redirect(url_for('index'))
-    
+
     def is_accessible(self):
         return current_user.is_authenticated
+
 
 admin = Admin(app=app, name='Discounts Management')
 admin.add_view(UserView(User, db.session))
