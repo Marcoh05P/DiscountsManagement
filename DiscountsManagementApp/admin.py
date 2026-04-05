@@ -3,8 +3,10 @@ from datetime import datetime
 
 from flask_admin import Admin, BaseView, expose
 from flask_admin.contrib.sqla import ModelView, typefmt
+from flask_admin.theme import Bootstrap4Theme
 from flask_login import logout_user, current_user
 from flask import redirect, url_for, request
+from markupsafe import Markup
 from wtforms import PasswordField
 from wtforms.validators import DataRequired, Optional
 from DiscountsManagementApp import app, db, dao, utils
@@ -20,6 +22,13 @@ DATETIME_FORMATTERS = dict(typefmt.BASE_FORMATTERS)
 DATETIME_FORMATTERS.update({
     datetime: date_format
 })
+
+def format_datetime_view(v, c, m, p):
+    value = getattr(m, p)
+    if value:
+        formatted_date = date_format(None, value)
+        return Markup(f'<span style="min-width: 150px; display: inline-block;">{formatted_date}</span>')
+    return ""
 
 
 class AuthenticatedModelView(ModelView):
@@ -110,6 +119,11 @@ class PromotionView(AuthenticatedModelView):
     form_widget_args = {
         'start_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
         'expire_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
+    }
+
+    column_formatters = {
+        'start_date': format_datetime_view,
+        'expire_date': format_datetime_view
     }
 
     def get_query(self):
@@ -219,12 +233,14 @@ class OrdersView(AuthenticatedModelView):
                     'final_amount', 'status')
 
     form_args = {
-        'start_date': {'format': '%d/%m/%Y %H:%M'},
-        'expire_date': {'format': '%d/%m/%Y %H:%M'},
+        'created_date': {'format': '%d/%m/%Y %H:%M'}
     }
     form_widget_args = {
-        'start_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
-        'expire_date': {'data-date-format': 'DD/MM/YYYY HH:mm'},
+        'created_date': {'data-date-format': 'DD/MM/YYYY HH:mm'}
+    }
+
+    column_formatters = {
+        'created_date': format_datetime_view
     }
 
     def edit_form(self, obj=None):
@@ -248,7 +264,7 @@ class LogoutView(BaseView):
         return current_user.is_authenticated
 
 
-admin = Admin(app=app, name='Discounts Management')
+admin = Admin(app=app, name='Discounts Management', theme=Bootstrap4Theme(fluid=True))
 admin.add_view(UserView(User, db.session))
 admin.add_view(PromotionView(Promotion, db.session))
 admin.add_view(OrdersView(Order, db.session))
