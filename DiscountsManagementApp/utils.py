@@ -72,8 +72,14 @@ def validate_promotion_value(form, field):
     
 def validate_max_discount_amount(form, field):
     value = field.data
-    if is_coupon(form.promotion_type.data) and (value is None or value <= 0):
-        raise ValidationError('Max discount amount is required for COUPON type.')
+    if is_coupon(form.promotion_type.data):
+        if value is None or value <= 0:
+            raise ValidationError('Max discount amount is required for COUPON type.')
+        else:
+            min_order_value = form.min_order_value.data
+            promotion_value = form.value.data
+            if min_order_value and promotion_value and value < (min_order_value * promotion_value):
+                raise ValidationError('Max discount amount should be at least equal to the discount calculated from min order value and promotion value for COUPON type.')
     else:
         if value is not None and value != 0:
             raise ValidationError('Max discount amount should be 0 for VOUCHER type.')
