@@ -61,14 +61,11 @@ def validate_order_data(user, sub_total_amount=None, promotion=None, promotion_u
 
 def update_availability(user, promotion, user_promotion_usage=None, increment_usage=True):
     step = 1 if increment_usage else -1
-
-    if not increment_usage or promotion.availability_count > 0:
-        promotion.availability_count -= step
-
-    if user_promotion_usage:
+    if user_promotion_usage and user_promotion_usage.usage_count + step > 0:
         user_promotion_usage.usage_count += step
-    elif increment_usage:
-        create_user_promotion_usage(user.id, promotion.id)
+    else:
+        if increment_usage:
+            create_user_promotion_usage(user.id, promotion.id)
 
     db.session.commit()
 
