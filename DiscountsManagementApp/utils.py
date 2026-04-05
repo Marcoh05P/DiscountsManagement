@@ -67,13 +67,17 @@ def validate_promotion_value(form, field):
         raise ValidationError('Value must be greater than 0.')
     if is_coupon(form.promotion_type.data) and value > 0.5:
         raise ValidationError('For COUPON type, value must be at most 0.5.')
+    else:
+        if value < 1000:
+            raise ValidationError('For VOUCHER type, value must be at least 1000.')
     
 def validate_max_discount_amount(form, field):
     value = field.data
     if is_coupon(form.promotion_type.data) and (value is None or value <= 0):
         raise ValidationError('Max discount amount is required for COUPON type.')
-    if value is not None and value < 0:
-        raise ValidationError('Max discount amount must be non-negative.')
+    else:
+        if value is not None and value != 0:
+            raise ValidationError('Max discount amount should be 0 for VOUCHER type.')
 
 def validate_phone_number(form, field):
     phone_number = field.data.strip()
