@@ -6,8 +6,8 @@ from flask_login import current_user, login_required, login_user, logout_user
 from DiscountsManagementApp import app, dao, db
 from DiscountsManagementApp.dao import check_phone_number_exists, get_promotion_by_code
 from DiscountsManagementApp.models import UserRole
-from DiscountsManagementApp.utils import validate_registration_data, validate_order_data, \
-    update_availability
+from DiscountsManagementApp.utils import update_availability
+from DiscountsManagementApp.validators.base import validate_registration_data, validate_order_data
 
 
 def role_required(*roles):

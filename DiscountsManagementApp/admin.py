@@ -9,9 +9,13 @@ from flask import redirect, url_for, request
 from markupsafe import Markup
 from wtforms import PasswordField
 from wtforms.validators import DataRequired, Optional
-from DiscountsManagementApp import app, db, dao, utils
+from DiscountsManagementApp import app, db, dao, validators
 from .models import Promotion, User, UserRole, Order, PromotionType, OrderStatus
 from wtforms.validators import DataRequired, NumberRange, ValidationError
+from .validators.admin.field_validators import validate_phone_number_field, validate_password_field, \
+    validate_date_field, validate_promotion_value_field, validate_max_discount_amount_field, \
+    is_existing_order_using_promotion
+from .validators.base import is_coupon
 
 
 def date_format(view, value):
@@ -49,10 +53,10 @@ class UserView(AuthenticatedModelView):
     column_searchable_list = ['full_name', 'phone_number']
     column_filters = ['role']
     column_labels = {
-        'full_name': 'Full Name',
-        'phone_number': 'Phone Number',
-        'role': 'Role',
-        'active': 'Active'
+        'full_name': 'Họ và tên',
+        'phone_number': 'Số điện thoại',
+        'role': 'Vai trò',
+        'active': 'Kích hoạt'
     }
     form_columns = ('full_name', 'phone_number', 'role', 'password', 'active')
     column_exclude_list = ['password_hash']
@@ -62,15 +66,16 @@ class UserView(AuthenticatedModelView):
 
     def create_form(self, obj=None):
         form = super().create_form(obj)
-        form.full_name.validators = [DataRequired(message='Full name is required')]
-        form.phone_number.validators = [DataRequired(message='Phone number is required'), utils.validate_phone_number]
-        form.password.validators = [DataRequired(message='Password is required'), utils.validate_password]
+        form.full_name.validators = [DataRequired(message='Họ và tên là bắt buộc')]
+        form.phone_number.validators = [DataRequired(message='Số điện thoại là bắt buộc'),
+                                        validate_phone_number_field]
+        form.password.validators = [DataRequired(message='Mật khẩu là bắt buộc'), validate_password_field]
         return form
 
     def edit_form(self, obj=None):
         form = super().edit_form(obj)
         form.role.render_kw = {'style': 'pointer-events:none;background-color:#eeeeee;', 'tabindex': '-1'}
-        form.password.validators = [Optional(), utils.validate_password]
+        form.password.validators = [Optional(), validate_password_field]
         return form
 
     def on_form_prefill(self, form, id):
@@ -99,15 +104,15 @@ class PromotionView(AuthenticatedModelView):
     column_searchable_list = ['code']
     column_filters = ['promotion_type']
     column_labels = {
-        'code': 'Promotion Code',
-        'promotion_type': 'Promotion Type',
-        'start_date': 'Start Date',
-        'expire_date': 'Expire Date',
-        'availability_count': 'Availability Count',
-        'value': 'Value',
-        'max_discount_amount': 'Max Discount Amount',
-        'min_order_value': 'Min Order Value',
-        'description': 'Description'
+        'code': 'Mã khuyến mãi',
+        'promotion_type': 'Loại khuyến mãi',
+        'start_date': 'Ngày bắt đầu',
+        'expire_date': 'Ngày hết hạn',
+        'availability_count': 'Số lượng còn lại',
+        'value': 'Giá trị giảm',
+        'max_discount_amount': 'Số tiền giảm tối đa',
+        'min_order_value': 'Giá trị đơn tối thiểu',
+        'description': 'Mô tả'
     }
     form_columns = ('code', 'promotion_type', 'start_date', 'expire_date', 'availability_count', 'value',
                     'max_discount_amount', 'min_order_value', 'description')
@@ -134,18 +139,18 @@ class PromotionView(AuthenticatedModelView):
 
     def create_form(self, obj=None):
         form = super().create_form(obj)
-        form.code.validators = [DataRequired(message='Promotion code is required')]
-        form.start_date.validators = [DataRequired(message='Start date is required')]
-        form.expire_date.validators = [DataRequired(message='Expire date is required'), utils.validate_dates]
-        form.value.validators = [NumberRange(min=0, message='Value must be non-negative'),
-                                 utils.validate_promotion_value]
-        form.availability_count.validators = [NumberRange(min=1, message='Availability count must be at least 1')]
+        form.code.validators = [DataRequired(message='Mã khuyến mãi là bắt buộc')]
+        form.start_date.validators = [DataRequired(message='Ngày bắt đầu là bắt buộc')]
+        form.expire_date.validators = [DataRequired(message='Ngày hết hạn là bắt buộc'), validate_date_field]
+        form.value.validators = [NumberRange(min=0, message='Giá trị phải lớn hơn hoặc bằng 0'),
+                                 validate_promotion_value_field]
+        form.availability_count.validators = [NumberRange(min=1, message='Số lượng còn lại phải ít nhất là 1')]
         form.max_discount_amount.render_kw = {}
         form.max_discount_amount.validators = [
-            NumberRange(min=0, message='Max discount amount must be non-negative'),
-            utils.validate_max_discount_amount,
+            NumberRange(min=0, message='Giảm tối đa phải lớn hơn hoặc bằng 0'),
+            validate_max_discount_amount_field,
         ]
-        form.min_order_value.validators = [NumberRange(min=0, message='Min order value must be non-negative')]
+        form.min_order_value.validators = [NumberRange(min=0, message='Giá trị đơn tối thiểu phải lớn hơn hoặc bằng 0')]
         return form
 
     def edit_form(self, obj=None):
@@ -157,18 +162,18 @@ class PromotionView(AuthenticatedModelView):
             'style': 'pointer-events:none;background-color:#eeeeee;',
             'tabindex': '-1',
         }
-        form.start_date.validators = [DataRequired(message='Start date is required')]
-        form.expire_date.validators = [DataRequired(message='Expire date is required'), utils.validate_dates]
-        form.value.validators = [NumberRange(min=0, message='Value must be non-negative'),
-                                 utils.validate_promotion_value]
-        form.availability_count.validators = [NumberRange(min=1, message='Availability count must be at least 1')]
-        form.min_order_value.validators = [NumberRange(min=0, message='Min order value must be non-negative')]
-        if utils.is_coupon(form.promotion_type.data):
+        form.start_date.validators = [DataRequired(message='Ngày bắt đầu là bắt buộc')]
+        form.expire_date.validators = [DataRequired(message='Ngày hết hạn là bắt buộc'), validate_date_field]
+        form.value.validators = [NumberRange(min=0, message='Giá trị phải lớn hơn hoặc bằng 0'),
+                                 validate_promotion_value_field]
+        form.availability_count.validators = [NumberRange(min=1, message='Số lượng còn lại phải ít nhất là 1')]
+        form.min_order_value.validators = [NumberRange(min=0, message='Giá trị đơn tối thiểu phải lớn hơn hoặc bằng 0')]
+        if is_coupon(form.promotion_type.data):
             form.max_discount_amount.render_kw = {}
             form.max_discount_amount.validators = [
-                DataRequired(message='Max discount amount is required for COUPON type'),
-                NumberRange(min=0, message='Max discount amount must be non-negative'),
-                utils.validate_max_discount_amount,
+                DataRequired(message='Giảm tối đa là bắt buộc với loại COUPON'),
+                NumberRange(min=0, message='Giảm tối đa phải lớn hơn hoặc bằng 0'),
+                validate_max_discount_amount_field,
             ]
         else:
             form.max_discount_amount.render_kw = {'readonly': True}
@@ -181,15 +186,15 @@ class PromotionView(AuthenticatedModelView):
                 model.promotion_type = existing.promotion_type
 
         if model.expire_date <= model.start_date:
-            raise ValidationError('Expire date must be after start date.')
+            raise ValidationError('Ngày hết hạn phải sau ngày bắt đầu.')
         if model.value is None or model.value <= 0:
-            raise ValidationError('Value must be greater than 0.')
+            raise ValidationError('Giá trị phải lớn hơn 0.')
 
-        if utils.is_coupon(model.promotion_type):
+        if is_coupon(model.promotion_type):
             if model.value > 0.5:
-                raise ValidationError('For COUPON type, value must be at most 0.5.')
+                raise ValidationError('Với loại COUPON, giá trị tối đa là 0.5.')
             if model.max_discount_amount is None or model.max_discount_amount <= 0:
-                raise ValidationError('Max discount amount is required for COUPON type.')
+                raise ValidationError('Giảm tối đa là bắt buộc với loại COUPON.')
         else:
             model.max_discount_amount = model.value
 
@@ -197,13 +202,13 @@ class PromotionView(AuthenticatedModelView):
         form.value.data = float(form.value.data) if form.value.data is not None else None
         if form.max_discount_amount.data is not None:
             form.max_discount_amount.data = float(form.max_discount_amount.data)
-        elif not utils.is_coupon(form.promotion_type.data):
+        elif not is_coupon(form.promotion_type.data):
             form.max_discount_amount.data = form.value.data
 
     def delete_model(self, model):
         try:
-            if (utils.is_existing_order_using_promotion(model)):
-                raise ValidationError('Cannot delete promotion because there are existing orders using it.')
+            if (is_existing_order_using_promotion(model)):
+                raise ValidationError('Không thể xóa khuyến mãi vì đã có đơn hàng sử dụng.')
             model.active = False
             db.session.add(model)
             db.session.commit()
@@ -221,13 +226,13 @@ class OrdersView(AuthenticatedModelView):
     column_searchable_list = ['customer_id']
     column_filters = ['status']
     column_labels = {
-        'customer_id': 'Customer',
-        'promotion_id': 'Promotion',
-        'created_date': 'Created Date',
-        'sub_total_amount': 'Sub Total Amount',
-        'discount_amount': 'Discount Amount',
-        'final_amount': 'Final Amount',
-        'status': 'Status'
+        'customer_id': 'Khách hàng',
+        'promotion_id': 'Khuyến mãi',
+        'created_date': 'Ngày tạo',
+        'sub_total_amount': 'Tạm tính',
+        'discount_amount': 'Giảm giá',
+        'final_amount': 'Thành tiền',
+        'status': 'Trạng thái'
     }
     form_columns = ('customer_id', 'promotion_id', 'created_date', 'sub_total_amount', 'discount_amount',
                     'final_amount', 'status')
