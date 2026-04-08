@@ -5,7 +5,7 @@
     <a class="nav-link" href="{{ url_for('index') }}">Trang chủ</a>
 </li>
 <li class="nav-item">
-    <a class="nav-link active" aria-current="page" href="{{ url_for('order_create') }}">Tạo đơn hàng</a>
+    <a class="nav-link active" aria-current="page" href="{{ url_for('order_create_view') }}">Tạo đơn hàng</a>
 </li>
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('orders_history') }}">Lịch sử đơn hàng</a>
@@ -17,11 +17,8 @@
     <h1>Tạo đơn hàng</h1>
     <p class="lead">Tạo mới một đơn hàng cho khách hàng</p>
 </div>
-{% if err_msg %}
-<div class="alert alert-danger" role="alert">
-    {{ err_msg }}
+<div class="alert alert-danger d-none" id="error-message" role="alert">
 </div>
-{% endif %}
 <form class="row">
     <div class="col-xxl-3 col-12 mb-3">
         <div class="card border border-primary h-100">
@@ -31,96 +28,43 @@
             </div>
             <div class="card-body d-flex flex-column justify-content-center">
                 <div class="d-flex w-100 mx-auto mb-4">
-                    <input class="form-control me-2" name="amount" placeholder="Giá tiền đơn hàng..."
-                           value="{% if amount %}{{ amount }}{% endif %}" type="number"
-                           onchange="updateOrderInfo();" required>
+                    <input class="form-control me-2" name="amount" id="amount-input" placeholder="Giá tiền đơn hàng..."
+                        value="" type="number" min="1" required oninput="onAmountChange()">
                     <h3 class="mb-0 fw-bold text-danger ms-2">VNĐ</h3>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-xxl-3 col-12 mb-3">
+    <div class="col-xxl-4 col-12 mb-3">
         <div class="card border border-success h-100">
             <div class="card-header bg-success">
                 <h6 class="mb-0 text-white text-center fw-bold">MÃ GIẢM GIÁ</h6>
             </div>
             <div class="card-body">
                 <div class="d-flex w-100 mx-auto mb-4">
-                    <input class="form-control me-2" name="code" id="code" placeholder="Nhập mã giảm giá..."
-                           value="{% if code %}{{ code }}{% endif %}">
-                    <button class="btn btn-success" type="submit" onclick="handleApplyBtn(event)">Áp dụng</button>
+                    <input class="form-control" name="code" id="code" placeholder="Tìm kiếm mã giảm giá..." value=""
+                        oninput="onPromotionSearchChange()">
                 </div>
                 <div class="d-flex w-100 mx-auto mb-4 justify-content-center">
-                    <a href="{{ url_for('order_create') }}"
-                       class="rounded border border-3 btn me-2{% if not ptype or ptype not in ['VOUCHER', 'COUPON'] %} selected border-success
-                        {% else %} border-muted
-                        {% endif %}">Tất cả</a>
-                    <a href="{{ url_for('order_create', ptype='COUPON') }}"
-                       class="rounded border border-3 btn me-2{% if ptype == 'COUPON' %} selected border-success
-                        {% else %} border-muted
-                        {% endif %}">Coupon</a>
-                    <a href="{{ url_for('order_create', ptype='VOUCHER') }}"
-                       class="rounded border border-3 btn{% if ptype == 'VOUCHER' %} selected border-success
-                        {% else %} border-muted
-                        {% endif %}">Voucher</a>
+                    <button type="button" class="rounded border border-3 btn me-2 border-success selected filter-btn"
+                        value="" onclick="handleFilterBtn('')">Tất cả</button>
+                    <button type="button" class="rounded border border-3 btn me-2 border-muted filter-btn"
+                        value="COUPON" onclick="handleFilterBtn('COUPON')">Coupon</button>
+                    <button type="button" class="rounded border border-3 btn border-muted filter-btn" value="VOUCHER"
+                        onclick="handleFilterBtn('VOUCHER')">Voucher</button>
                 </div>
-                {% if not promotions or not promotions.items %}
-                <div class="alert alert-warning text-center" role="alert">
+                <div class="alert alert-warning text-center d-none" role="alert" id="promotions-alert">
                     Không tìm thấy mã giảm giá phù hợp.
                 </div>
-                {% else %}
-                <div class="overflow-auto" style="height: 300px;">
-                {% for pr in promotions.items %}
-                <div class="d-flex align-items-center promotion-item p-2 mb-3 rounded coach-item border border-3
-                {% if code and code == pr.code %} selected border-success {% else %}
-                border-muted {% endif %}"
-                    id="{{ pr.code }}" onclick="choosePromotion(this)">
-                    <div>
-                        <input type="hidden" name="discount-value" value="{{ pr.value }}" disabled>
-                        <input type="hidden" name="max-discount-amount" value="{{ pr.max_discount_amount }}" disabled>
-                        <h4 class="mb-0 fw-bold text-danger">
-                            GIẢM {% if pr.value > 1.0 %} {{ "{:,.0f}".format(pr.value) }} VNĐ
-                            {% else %} {{ "{:.0%}".format(pr.value) }} {% endif %}
-                        </h4>
-                        <p class="text-muted mb-0">Mã: {{pr.code }}</p>
-                        <p class="text-muted mb-0">Hết hạn: {{
-                            pr.expire_date.strftime("%d/%m/%Y %H:%M") }}</p>
-                        <p class="text-muted mb-0">Số lượt dùng còn lại: {{
-                            pr.remaining_availability_count if pr.remaining_availability_count is defined else pr.availability_count }}</p>
-                        <p class="text-muted mb-0">Số tiền giảm tối đa: {% if pr.max_discount_amount %} {{
-                            "{:,.0f}".format(pr.max_discount_amount) }} VNĐ
-                            {% else %} Không giới hạn {% endif %}
-                        </p>
-                    </div>
+                <div class="overflow-auto" style="height: 300px;" id="promotions-list">
                 </div>
-                {% endfor %}
-                </div>
-                {% endif %}
-                {% if promotions and promotions.pages>1 %}
                 <nav class="mt-3" aria-label="Order promotion pagination">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item {% if not promotions.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('order_create', page=promotions.prev_num, code=code, amount=amount, ptype=ptype) if promotions.has_prev else '#' }}">Trước</a>
-                    </li>
-                    {% for i in promotions.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
-                    {% if i %}
-                    <li class="page-item {% if promotions.page == i %}active{% endif %}"><a
-                            class="page-link" href="{{ url_for('order_create', page=i, code=code, amount=amount, ptype=ptype) }}">{{ i }}</a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                    {% endfor %}
-                    <li class="page-item {% if not promotions.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('order_create', page=promotions.next_num, code=code, amount=amount, ptype=ptype) if promotions.has_next else '#' }}">Sau</a>
-                    </li>
-                </ul>
+                    <ul class="pagination justify-content-center" id="promotions-pagination"></ul>
                 </nav>
-                {% endif %}
             </div>
         </div>
     </div>
-    <div class="col-xxl-6 col-12 mb-3">
+    <div class="col-xxl-5 col-12 mb-3">
         <div class="card border border-info h-100">
             <div class="card-header bg-info">
                 <h6 class="mb-0 text-white text-center fw-bold">THÔNG TIN ĐƠN HÀNG</h6>
@@ -143,80 +87,348 @@
             </div>
         </div>
     </div>
-    <button class="btn btn-primary btn-lg w-100 {% if not amount %} disabled {% endif %}" id="create-order-btn"
-            type="submit" onclick="handleCreateBtn(event)">Tạo đơn hàng
+    <button class="btn btn-primary btn-lg w-100 disabled" id="create-order-btn" type="button"
+        onclick="createOrder()">Tạo đơn hàng
     </button>
 </form>
-
 <script>
-    DOMContentLoadedEvent = document.addEventListener('DOMContentLoaded', function () {
-        updateOrderInfo();
-    });
+    var currentPage = 1;
+    var currentPtype = '';
+    var totalPages = 1;
+    var promotionItems = [];
+    var selectedPromotion = null;
+    var isSubmitting = false;
 
-    function handleApplyBtn(btn) {
-        btn.preventDefault();
-        const form = document.querySelector('form');
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.delete('ptype');
-        currentUrl.searchParams.delete('page');
-        const cleanedQuery = currentUrl.searchParams.toString();
-        form.action = cleanedQuery ? `${currentUrl.pathname}?${cleanedQuery}` : currentUrl.pathname;
-        form.submit();
+    function showError(message) {
+        var errorMessage = document.getElementById('error-message');
+        if (!message) {
+            errorMessage.classList.add('d-none');
+            errorMessage.textContent = '';
+            return;
+        }
+
+        errorMessage.classList.remove('d-none');
+        errorMessage.textContent = message;
     }
 
-    function handleCreateBtn(event) {
-        event.preventDefault();
-        const form = document.querySelector('form');
-        form.method = 'POST';
-        form.action = "{{ url_for('order_create') }}";
-        form.submit();
+    function calculateDiscount(amount, promotion) {
+        if (!promotion || amount <= 0) {
+            return 0;
+        }
+
+        var value = promotion.value;
+
+        if (promotion.promotion_type === 'COUPON') {
+            var couponDiscount = amount * value;
+            var maxDiscountAmount = promotion.max_discount_amount;
+            return maxDiscountAmount > 0 ? Math.min(couponDiscount, maxDiscountAmount) : couponDiscount;
+        }
+
+        return value;
     }
 
-    function choosePromotion(object) {
-        if (object.classList.contains('selected')) {
-            object.classList.remove('selected', 'border-success');
-            object.classList.add('border-muted');
-            document.getElementById('code').value = '';
+    function clearSelectedPromotion() {
+        selectedPromotion = null;
+        document.getElementById('code').value = '';
+    }
+
+    function updateCreateBtnState() {
+        var button = document.getElementById('create-order-btn');
+        var amount = Number.parseFloat(document.getElementById('amount-input').value) || 0;
+        button.classList.toggle('disabled', isSubmitting || amount <= 0);
+    }
+
+    function formatCurrency(amount) {
+        return Math.max(0, Math.round(amount)).toLocaleString('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    }
+
+    function updateOrderInfo() {
+        var orderInfo = document.getElementById('order-info');
+        var initAmountField = document.getElementById('init-amount-field');
+        var discountAmountField = document.getElementById('discount-amount-field');
+        var finalAmountField = document.getElementById('final-amount-field');
+        var amount = Number.parseFloat(document.getElementById('amount-input').value) || 0;
+
+        updateCreateBtnState();
+
+        if (amount <= 0) {
+            orderInfo.classList.add('d-none');
+            initAmountField.textContent = '';
+            discountAmountField.textContent = '';
+            finalAmountField.textContent = '';
+            return;
+        }
+
+        orderInfo.classList.remove('d-none');
+        var discountAmount = calculateDiscount(amount, selectedPromotion);
+        initAmountField.textContent = formatCurrency(amount);
+        discountAmountField.textContent = formatCurrency(discountAmount);
+        finalAmountField.textContent = formatCurrency(amount - discountAmount);
+    }
+
+    function updateFilterBtnState() {
+        var filterButtons = document.querySelectorAll('.filter-btn');
+        for (var i = 0; i < filterButtons.length; i += 1) {
+            var button = filterButtons[i];
+            var selected = (button.value || '') === currentPtype;
+            button.classList.toggle('selected', selected);
+            button.classList.toggle('border-success', selected);
+            button.classList.toggle('border-muted', !selected);
+        }
+    }
+
+    function selectPromotion(code) {
+        code = (code || '').trim();
+        if (!code) {
+            clearSelectedPromotion();
         } else {
-            let selectedPromotion = document.querySelector('.promotion-item.selected');
-            if (selectedPromotion) {
-                selectedPromotion.classList.remove('selected', 'border-success');
-                selectedPromotion.classList.add('border-muted');
-                document.getElementById('code').value = '';
+            var target = null;
+            for (var i = 0; i < promotionItems.length; i += 1) {
+                if (promotionItems[i].code === code) {
+                    target = promotionItems[i];
+                    break;
+                }
             }
-            object.classList.add('selected', 'border-success');
-            document.getElementById('code').value = object.id;
+            selectedPromotion = target;
+            document.getElementById('code').value = target ? target.code : '';
         }
-           updateOrderInfo(object);
+
+        renderPromotions();
+        updateOrderInfo();
+        showError('');
     }
 
-    function validateInput() {
-        const initAmount = document.querySelector('input[name="amount"]').value;
-        const btn = document.getElementById('create-order-btn');
-        if (!initAmount || initAmount === '' || Number(initAmount) <= 0) {
-            btn.classList.add('disabled');
-            document.getElementById('order-info').classList.add('d-none');
-        } else {
-            btn.classList.remove('disabled');
-            document.getElementById('order-info').classList.remove('d-none');
+    function renderPromotions() {
+        var promotionsList = document.getElementById('promotions-list');
+        var promotionAlert = document.getElementById('promotions-alert');
+        promotionsList.innerHTML = '';
+
+        if (!promotionItems.length || promotionItems.length === 0) {
+            promotionAlert.classList.remove('d-none');
+            return;
+        }
+
+        promotionAlert.classList.add('d-none');
+
+        for (var i = 0; i < promotionItems.length; i += 1) {
+            var promotion = promotionItems[i];
+            var isSelected = selectedPromotion && promotion.code === selectedPromotion.code;
+            var value = promotion.value;
+            var formattedDiscountTitle = value > 1
+                ? 'GIẢM ' + formatCurrency(value)
+                : 'GIẢM ' + Math.round(value * 100) + '%';
+            var maxDiscount = promotion.max_discount_amount;
+            var remaining = promotion.remaining_availability_count;
+            var minOrderValue = promotion.min_order_value;
+            var date = new Date(promotion.expire_date);
+            var formattedExpireDate = date.toLocaleString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            var promotionCard = document.createElement('button');
+            promotionCard.type = 'button';
+            promotionCard.className = 'w-100 text-start d-flex align-items-center promotion-item p-2 mb-3 rounded coach-item border border-3 ' + (isSelected ? 'selected border-success' : 'border-muted');
+            promotionCard.innerHTML =
+                '<div>' +
+                '<h4 class="mb-0 fw-bold text-danger">' + formattedDiscountTitle + '</h4>' +
+                '<p class="text-muted mb-0">Mã: ' + promotion.code + '</p>' +
+                (value < 1
+                    ? '<p class="text-muted mb-0">Giá trị đơn tối thiểu: ' + formatCurrency(minOrderValue) + '</p>'
+                    : (value > 1
+                        ? '<p class="text-muted mb-0">Điều kiện: Đơn hàng phải lớn hơn 50% giá trị giảm</p>'
+                        : '')) +
+                '<p class="text-muted mb-0">Hết hạn: ' + formattedExpireDate + '</p>' +
+                '<p class="text-muted mb-0">Số lượt dùng còn lại: ' + remaining + '</p>' +
+                '<p class="text-muted mb-0">Số tiền giảm tối đa: ' + (maxDiscount > 0 ? formatCurrency(maxDiscount) : 'Không giới hạn') + '</p>' +
+                '</div>';
+            
+            if (isSelected){
+                promotionCard.onclick = (function() {
+                    return function() {
+                        selectPromotion('');
+                    };
+                })();
+            }
+            else {
+                promotionCard.onclick = (function (promotionCode) {
+                    return function () {
+                        selectPromotion(promotionCode);
+                    };
+                })(promotion.code);
+            }
+            promotionsList.appendChild(promotionCard);
         }
     }
 
-    function updateOrderInfo(object) {
-        validateInput();
-        const initAmount = document.querySelector('input[name="amount"]').value;
-        document.getElementById('init-amount-field').innerText = initAmount ? parseInt(initAmount).toLocaleString('vi-VN') + ' VNĐ' : '';
-        discountValue = object ? parseFloat(object.querySelector('input[name="discount-value"]').value) : 0;
-        maxDiscountAmount = object ? parseFloat(object.querySelector('input[name="max-discount-amount"]').value) : 0;
-        discountAmount = 0;
-        if (discountValue > 1.0) {
-            discountAmount = maxDiscountAmount > 0 ? Math.min(discountValue, maxDiscountAmount) : discountValue;
-        } else {
-            discountAmount = maxDiscountAmount > 0 ? Math.min(initAmount * discountValue, maxDiscountAmount) : initAmount * discountValue;
-        }
-        document.getElementById('discount-amount-field').innerText = discountAmount.toLocaleString('vi-VN') + ' VNĐ';
-        document.getElementById('final-amount-field').innerText = (initAmount - discountAmount).toLocaleString('vi-VN') + ' VNĐ';
+    function createPageItem(number, page, disabled, active) {
+        var li = document.createElement('li');
+        li.className = 'page-item ' + (disabled ? 'disabled ' : '') + (active ? 'active' : '');
 
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-link';
+        button.textContent = number;
+        button.disabled = disabled;
+        if (!disabled && !active) {
+            button.onclick = function () {
+                changePage(page);
+            };
+        }
+
+        li.appendChild(button);
+        return li;
     }
+
+    function renderPagination() {
+        var pagination = document.getElementById('promotions-pagination');
+        pagination.innerHTML = '';
+        if (totalPages <= 1) {
+            return;
+        }
+
+        pagination.appendChild(createPageItem('Trước', Math.max(1, currentPage - 1), currentPage <= 1, false));
+        for (var i = 1; i <= totalPages; i += 1) {
+            pagination.appendChild(createPageItem(String(i), i, false, i === currentPage));
+        }
+        pagination.appendChild(createPageItem('Sau', Math.min(totalPages, currentPage + 1), currentPage >= totalPages, false));
+    }
+
+    async function loadPromotions() {
+        var amount = Number.parseFloat(document.getElementById('amount-input').value) || 0;
+        var code = (document.getElementById('code').value || '').trim();
+        var query = new URLSearchParams({ page: String(currentPage) });
+        if (currentPtype) {
+            query.set('ptype', currentPtype);
+        }
+        if (amount > 0) {
+            query.set('amount', amount);
+        }
+        if (code) {
+            query.set('code', code);
+        }
+
+        try {
+            var response = await fetch("{{ url_for('get_promotions') }}" + '?' + query.toString());
+            var data = await response.json();
+            promotionItems = data.items || [];
+            totalPages = data.total_pages || 1;
+
+            if (currentPage > totalPages) {
+                currentPage = 1;
+                await loadPromotions();
+                return;
+            }
+
+            if (selectedPromotion) {
+                var target = null;
+                for (var i = 0; i < promotionItems.length; i += 1) {
+                    if (promotionItems[i].code === selectedPromotion.code) {
+                        target = promotionItems[i];
+                        break;
+                    }
+                }
+                selectedPromotion = target;
+                document.getElementById('code').value = target ? target.code : '';
+            }
+
+            renderPromotions();
+            renderPagination();
+            updateOrderInfo();
+        } catch (error) {
+            promotionItems = [];
+            clearSelectedPromotion();
+            renderPromotions();
+            renderPagination();
+            updateOrderInfo();
+            showError(error.message);
+        }
+    }
+
+    async function createOrder() {
+        var amount = Number.parseFloat(document.getElementById('amount-input').value) || 0;
+        if (amount <= 0 || isSubmitting) {
+            return;
+        }
+
+        isSubmitting = true;
+        updateCreateBtnState();
+        showError('');
+
+        try {
+            var formData = new FormData();
+            formData.append('sub_total_amount', amount);
+            if (selectedPromotion) {
+                formData.append('promotion_code', selectedPromotion.code);
+            }
+
+            var response = await fetch("{{ url_for('create_order') }}", {
+                method: 'POST',
+                body: formData
+            });
+            var data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error);
+            }
+            window.location.href = "{{ url_for('orders_history') }}";
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            isSubmitting = false;
+            updateCreateBtnState();
+        }
+    }
+
+    async function changePage(page) {
+        currentPage = page;
+        await loadPromotions();
+    }
+
+    function onAmountChange() {
+        if (onAmountChange.timer) {
+            clearTimeout(onAmountChange.timer);
+        }
+
+        onAmountChange.timer = setTimeout(async function () {
+            currentPage = 1;
+            clearSelectedPromotion();
+            updateOrderInfo();
+            await loadPromotions();
+        }, 500);
+    }
+
+    function onPromotionSearchChange() {
+        if (onPromotionSearchChange.timer) {
+            clearTimeout(onPromotionSearchChange.timer);
+        }
+
+        onPromotionSearchChange.timer = setTimeout(async function () {
+            currentPage = 1;
+            selectedPromotion = null;
+            showError('');
+            await loadPromotions();
+        }, 500);
+    }
+
+    async function handleFilterBtn(ptype) {
+        currentPtype = ptype;
+        currentPage = 1;
+        clearSelectedPromotion();
+        updateFilterBtnState();
+        await loadPromotions();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadPromotions();
+    });
 </script>
 {% endblock %}
