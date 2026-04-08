@@ -46,18 +46,11 @@ def create_order(customer_id, sub_total_amount, discount_amount, final_amount, p
     return order
 
 
-def update_order(order_id, promotion_id=None, discount_amount=None, final_amount=None,
-                 status=None):
+def update_order(order_id, status=None):
     order = Order.query.get(order_id)
     if not order:
         return None
 
-    if promotion_id is not None:
-        order.promotion_id = promotion_id
-    if discount_amount is not None:
-        order.discount_amount = discount_amount
-    if final_amount is not None:
-        order.final_amount = final_amount
     if status is not None:
         order.status = status
 
@@ -138,3 +131,7 @@ def get_orders_by_customer(customer_id, page=None, sort_by='newest'):
     if not page:
         page = 1
     return query.paginate(page=page, per_page=app.config['PAGE_SIZE'])
+
+
+def get_order_by_id(order_id):
+    return Order.query.get(order_id)

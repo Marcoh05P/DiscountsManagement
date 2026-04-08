@@ -2,10 +2,10 @@ from flask import jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from DiscountsManagementApp import app, dao
-from DiscountsManagementApp.dao import check_phone_number_exists, get_promotion_by_code
+from DiscountsManagementApp.dao import check_phone_number_exists, get_order_by_id, get_promotion_by_code, get_user_promotion_usage
 from DiscountsManagementApp.models import UserRole
 from DiscountsManagementApp.utils import update_availability
-from DiscountsManagementApp.validators.base import validate_registration_data, validate_order_data
+from DiscountsManagementApp.validators.base import validate_order_update, validate_registration_data, validate_order_data
 
 
 def _default_redirect_for_role(user):
@@ -141,6 +141,25 @@ def create_order():
         except Exception as ex:
             err_msg = f'Không thể tạo đơn hàng do {str(ex)}'
     return jsonify({'error': err_msg}), 400
+
+
+
+@app.route('/orders/<int:order_id>', methods=['PATCH'])
+@login_required
+def update_order(order_id):
+    status = request.form.get('status')
+    order = get_order_by_id(order_id)
+    is_valid, error_message = validate_order_update(order, status)
+    if not is_valid:
+        return jsonify({'error': error_message}), 400
+    try:
+        updated_order = dao.update_order(order_id, status=status)
+        user_promotion_usage = get_user_promotion_usage(user_id=current_user.id, promotion_id=updated_order.promotion_id) if updated_order.promotion_id else None
+        update_availability(user=current_user, promotion=None, user_promotion_usage=user_promotion_usage, increment_usage=False)
+        return jsonify(updated_order.to_dict()), 204
+    except Exception as ex:
+        return jsonify({'error': f'Không thể cập nhật đơn hàng do {str(ex)}'}), 400
+
 
 
 @app.route('/api/promotions', methods=['GET'])
