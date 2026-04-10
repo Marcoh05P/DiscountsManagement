@@ -99,10 +99,8 @@ def validate_phone_number(phone_number):
 def validate_order_update(order, status):
     if current_user.role.name == 'CUSTOMER' and order.customer_id != current_user.id:
         return False, 'Bạn không có quyền cập nhật đơn hàng này.'
+    if status not in ['CANCELED', 'COMPLETED']:
+        return False, 'Trạng thái cập nhật không hợp lệ.'
     if order.status.name != 'PENDING':
         return False, 'Chỉ có thể cập nhật đơn hàng ở trạng thái đang chờ xử lý.'
-    if status == 'CANCELED' and current_user.role.name == 'ADMIN':
-        return False, 'Bạn không có quyền hủy đơn hàng.'
-    if status == 'COMPLETED' and current_user.role.name == 'CUSTOMER':
-        return False, 'Bạn không có quyền hoàn thành đơn hàng.'
     return True, ''
