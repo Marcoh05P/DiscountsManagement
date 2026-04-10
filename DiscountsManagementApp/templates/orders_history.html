@@ -66,6 +66,7 @@
                 </td>
                 <td>
                     {% if order.status.name == 'PENDING' %}
+                    <button class="btn btn-success" onclick="handleSuccessBtn({{order.id}})">Hoàn thành</button>
                     <button class="btn btn-danger" onclick="handleCancelBtn({{order.id}})">Hủy</button>
                     {% endif %}
                 </td>
@@ -128,6 +129,35 @@
                     }
                 })
                 .catch(error => alert('Không thể hủy đơn hàng: ' + error.message));
+        }
+    }
+
+    function handleSuccessBtn(orderId) {
+        if (confirm('Bạn có chắc chắn muốn đánh dấu đơn hàng này là hoàn thành? Sau khi hoàn thành, bạn sẽ không thể hủy đơn hàng này nữa.')) {
+            const formData = new FormData();
+            formData.append('status', 'COMPLETED');
+            fetch(`/orders/${orderId}`, {
+                method: 'PATCH',
+                body: formData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        const row = document.getElementById(orderId);
+                        if (row) {
+                            row.querySelector('td:nth-child(7)').innerHTML = '<span class="badge text-bg-success">Hoàn thành</span>';
+                            const actionCell = row.querySelector('td:nth-child(8)');
+                            if (actionCell) {
+                                actionCell.innerHTML = '';
+                            }
+                        }
+                    }
+                    else {
+                        return response.json().then(data => {
+                            throw new Error(data.error);
+                        });
+                    }
+                })
+                .catch(error => alert('Không thể hoàn thành đơn hàng: ' + error.message));
         }
     }
 </script>
