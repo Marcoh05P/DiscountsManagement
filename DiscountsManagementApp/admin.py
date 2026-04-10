@@ -5,11 +5,12 @@ from flask_admin import Admin, BaseView, expose
 from flask_admin.contrib.sqla import ModelView, typefmt
 from flask_admin.theme import Bootstrap4Theme
 from flask_login import logout_user, current_user
-from flask import redirect, url_for, request
+from flask import redirect, url_for, request, flash
 from markupsafe import Markup
 from wtforms import PasswordField
 from wtforms.validators import DataRequired, Optional
 from DiscountsManagementApp import app, db, dao, validators
+from DiscountsManagementApp.utils import update_availability
 from .models import Promotion, User, UserRole, Order, PromotionType, OrderStatus
 from wtforms.validators import DataRequired, NumberRange, ValidationError
 from .validators.admin.field_validators import validate_order_update_status_field, validate_phone_number_field, validate_password_field, \
@@ -258,6 +259,27 @@ class OrdersView(AuthenticatedModelView):
         form.final_amount.render_kw = {'readonly': True}
         form.status.validators = [DataRequired(message='Trạng thái là bắt buộc'), validate_order_update_status_field]
         return form
+    
+    def update_model(self, form, model):
+        new_status = form.status.data
+        if new_status == OrderStatus.CANCELLED.name and model.status != OrderStatus.CANCELLED:
+            customer = User.query.get(model.customer_id)
+            user_promotion_usage = dao.get_user_promotion_usage(customer.id, model.promotion_id)
+            try:
+                update_availability(user=customer, user_promotion_usage=user_promotion_usage, increment_usage=False)
+            except Exception as ex:
+                if not self.handle_view_exception(ex):
+                    flash(
+                        "Không thể cập nhật trạng thái đơn hàng!",
+                        "error",
+                    )
+
+                db.session.rollback()
+                
+                return False
+            
+        return super().update_model(form, model)
+
 
 
 class LogoutView(BaseView):
