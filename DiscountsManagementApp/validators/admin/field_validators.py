@@ -1,7 +1,7 @@
 from wtforms import ValidationError
 
 from DiscountsManagementApp.models import Order
-from DiscountsManagementApp.validators.base import validate_password_value, validate_date_range, \
+from DiscountsManagementApp.validators.base import validate_order_update, validate_password_value, validate_date_range, \
     validate_promotion_value, validate_max_discount_amount, validate_phone_number
 
 
@@ -47,3 +47,12 @@ def validate_password_field(form, field):
 
 def is_existing_order_using_promotion(promotion):
     return Order.query.filter(Order.promotion_id == promotion.id, Order.status == 'PENDING').first() is not None
+
+
+def validate_order_update_status_field(form, field):
+    order = form._obj
+    new_status = field.data
+    if order and new_status:
+        is_valid, error_message = validate_order_update(order, new_status)
+        if not is_valid:
+            raise ValidationError(error_message)

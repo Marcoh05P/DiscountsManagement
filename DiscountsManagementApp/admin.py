@@ -12,7 +12,7 @@ from wtforms.validators import DataRequired, Optional
 from DiscountsManagementApp import app, db, dao, validators
 from .models import Promotion, User, UserRole, Order, PromotionType, OrderStatus
 from wtforms.validators import DataRequired, NumberRange, ValidationError
-from .validators.admin.field_validators import validate_phone_number_field, validate_password_field, \
+from .validators.admin.field_validators import validate_order_update_status_field, validate_phone_number_field, validate_password_field, \
     validate_date_field, validate_promotion_value_field, validate_max_discount_amount_field, \
     is_existing_order_using_promotion
 from .validators.base import is_coupon
@@ -256,6 +256,7 @@ class OrdersView(AuthenticatedModelView):
         form.sub_total_amount.render_kw = {'readonly': True}
         form.discount_amount.render_kw = {'readonly': True}
         form.final_amount.render_kw = {'readonly': True}
+        form.status.validators = [DataRequired(message='Trạng thái là bắt buộc'), validate_order_update_status_field]
         return form
 
 
