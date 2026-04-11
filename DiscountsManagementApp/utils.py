@@ -1,11 +1,15 @@
+from DiscountsManagementApp import db
+from DiscountsManagementApp.dao import create_user_promotion_usage
 
-def validate_registration_data(full_name, phone_number, password, confirm):
-    if not full_name or not full_name.strip():
-        return False, 'Họ và tên là bắt buộc!'
-    if not phone_number or not phone_number.strip():
-        return False, 'Số điện thoại là bắt buộc!'
-    if not password:
-        return False, 'Mật khẩu là bắt buộc!'
-    if password != confirm:
-        return False, 'Mật khẩu xác nhận không khớp!'
-    return True, ''
+
+def update_availability(user, promotion=None, user_promotion_usage=None, increment_usage=True):
+    step = 1 if increment_usage else -1
+    if user_promotion_usage and user_promotion_usage.usage_count + step >= 0:
+        user_promotion_usage.usage_count += step
+    else:
+        if increment_usage and promotion:
+            create_user_promotion_usage(user.id, promotion.id)
+
+    db.session.commit()
+
+
