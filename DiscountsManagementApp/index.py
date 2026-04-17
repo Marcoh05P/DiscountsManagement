@@ -103,8 +103,6 @@ def orders_history():
 def create_order():
     promotion_code = request.form.get('promotion_code')
     sub_total_amount = request.form.get('sub_total_amount', type=float)
-    print(
-        f'Promotion code: {promotion_code}, Sub total amount: {sub_total_amount}')
     promotion = None
     user_promotion_usage = None
     discount_amount = 0.0
