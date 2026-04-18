@@ -147,7 +147,9 @@ def create_order():
 def update_order(order_id):
     status = request.form.get('status')
     order = get_order_by_id(order_id)
-    is_valid, error_message = validate_order_update(order, status)
+    if not order:
+        return jsonify({'error': 'Đơn hàng không tồn tại!'}), 404
+    is_valid, error_message = validate_order_update(customer_id=order.customer_id, old_status=order.status.name, new_status=status)
     if not is_valid:
         return jsonify({'error': error_message}), 400
     try:

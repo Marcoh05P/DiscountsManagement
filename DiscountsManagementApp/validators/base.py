@@ -37,7 +37,7 @@ def validate_registration_data(full_name, phone_number, password, confirm):
     return True, ''
 
 
-def validate_order_data(user, sub_total_amount=None, promotion=None, promotion_usage=None, is_using_promotion=False,
+def validate_order_data(sub_total_amount=None, promotion=None, promotion_usage=None, is_using_promotion=False,
                         discount_amount=None):
     if sub_total_amount is None or sub_total_amount <= 0:
         return False, 'Giá trị đơn hàng không hợp lệ!'
@@ -96,13 +96,13 @@ def validate_phone_number(phone_number):
     return True, ''
 
 
-def validate_order_update(order, status):
-    if current_user.role.name == 'CUSTOMER' and order.customer_id != current_user.id:
+def validate_order_update(customer_id, old_status, new_status):
+    if current_user.role.name == 'CUSTOMER' and customer_id != current_user.id:
         return False, 'Bạn không có quyền cập nhật đơn hàng này.'
-    if order.status.name == status:
+    if old_status == new_status:
         return True, ''
-    if status not in ['PENDING', 'CANCELLED', 'COMPLETED']:
+    if new_status not in ['PENDING', 'CANCELLED', 'COMPLETED']:
         return False, 'Trạng thái cập nhật không hợp lệ.'
-    if order.status.name != 'PENDING':
+    if old_status != 'PENDING':
         return False, 'Chỉ có thể cập nhật đơn hàng ở trạng thái đang chờ xử lý.'
     return True, ''

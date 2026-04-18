@@ -53,6 +53,6 @@ def validate_order_update_status_field(form, field):
     order = form._obj
     new_status = field.data
     if order and new_status:
-        is_valid, error_message = validate_order_update(order, new_status)
+        is_valid, error_message = validate_order_update(customer_id=order.customer_id, old_status=order.status.name, new_status=new_status)
         if not is_valid:
             raise ValidationError(error_message)
