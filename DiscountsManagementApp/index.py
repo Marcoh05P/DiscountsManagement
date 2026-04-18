@@ -153,9 +153,11 @@ def update_order(order_id):
     if not is_valid:
         return jsonify({'error': error_message}), 400
     try:
+        old_status = order.status.name
         updated_order = dao.update_order(order_id, status=status)
         user_promotion_usage = get_user_promotion_usage(user_id=current_user.id, promotion_id=updated_order.promotion_id) if updated_order.promotion_id else None
-        update_availability(user=current_user, promotion=None, user_promotion_usage=user_promotion_usage, increment_usage=False)
+        if status == 'CANCELLED' and old_status == 'PENDING':
+            update_availability(user=current_user, promotion=None, user_promotion_usage=user_promotion_usage, increment_usage=False)
         return jsonify(updated_order.to_dict()), 204
     except Exception as ex:
         return jsonify({'error': f'Không thể cập nhật đơn hàng do {str(ex)}'}), 400
