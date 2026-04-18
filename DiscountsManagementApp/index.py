@@ -21,7 +21,7 @@ def register_routes(target_app):
         kw = request.args.get('kw')
         sort = request.args.get('sort')
         page = request.args.get('page', 1, type=int)
-        promotions = dao.get_promotions(kw, sort_by=sort, page=page)
+        promotions = dao.get_promotions(code=kw, sort_by=sort, page=page)
 
         return render_template("index.html", promotions=promotions)
 

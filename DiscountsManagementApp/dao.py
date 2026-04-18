@@ -69,13 +69,15 @@ def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_av
     query = db.session.query(Promotion, remaining_count).outerjoin(
         UserPromotionUsage,
         UserPromotionUsage.promotion_id == Promotion.id
-    ).group_by(Promotion.id).filter(Promotion.active.is_(True), Promotion.start_date <= datetime.now(), Promotion.expire_date >= datetime.now())
+    ).group_by(Promotion.id).filter(Promotion.active.is_(True), Promotion.start_date <= datetime.now())
 
     if code:
         query = query.filter(Promotion.code.contains(code.strip()))
 
     if expired:
         query = query.filter(Promotion.expire_date < datetime.now())
+    else:
+        query = query.filter(Promotion.expire_date >= datetime.now())
 
     if ptype:
         query = query.filter(Promotion.promotion_type == ptype)
