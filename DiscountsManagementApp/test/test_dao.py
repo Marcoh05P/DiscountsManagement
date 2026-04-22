@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import current_app
 import pytest
 
-from DiscountsManagementApp.dao import add_user, auth_user, create_order, get_promotion_by_code, get_promotions, get_user_by_phone_number, update_order
+from DiscountsManagementApp.dao import add_user, auth_user, create_order, create_user_promotion_usage, get_promotion_by_code, get_promotions, get_user_by_phone_number, update_order
 from DiscountsManagementApp.test.test_base import test_app, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage
 
 
@@ -211,4 +211,34 @@ def test_get_promotions_include_not_available(test_session, sample_promotion, sa
     assert promotions.total == 12
     assert len(promotions.items) == 3
     assert any(p.remaining_availability_count == 0 for p in promotions.items)
+
+
+def test_create_user_promotion_usage(test_session, sample_user, sample_promotion):
+    user = sample_user[0]
+    promotion = sample_promotion[0]
+    usage = create_user_promotion_usage(user_id=user.id, promotion_id=promotion.id)
+    assert usage is not None
+    assert usage.user_id == user.id
+    assert usage.promotion_id == promotion.id
+
+
+def test_create_user_promotion_usage_without_user(test_session, sample_promotion):
+    promotion = sample_promotion[0]
+    with pytest.raises(Exception):
+        create_user_promotion_usage(promotion_id=promotion.id)
+
+
+def test_create_user_promotion_usage_without_promotion(test_session, sample_user):
+    user = sample_user[0]
+    with pytest.raises(Exception):
+        create_user_promotion_usage(user_id=user.id)
+
+
+def test_create_user_promotion_usage_duplicate(test_session, sample_user, sample_promotion):
+    user = sample_user[0]
+    promotion = sample_promotion[0]
+    create_user_promotion_usage(user_id=user.id, promotion_id=promotion.id)
+    with pytest.raises(Exception):
+        create_user_promotion_usage(user_id=user.id, promotion_id=promotion.id)
+
 
