@@ -169,6 +169,9 @@ def register_routes(target_app):
         if page < 1:
             return jsonify({'error': 'Số trang không hợp lệ!'}), 400
 
+        if amount and amount < 0:
+            return jsonify({'error': 'Giá trị đơn hàng không hợp lệ!'}), 400
+
         promotions = dao.get_promotions(
             code=code, page=page, order_value=amount, ptype=ptype)
         return jsonify({
