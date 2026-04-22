@@ -107,3 +107,5 @@ class UserPromotionUsage(BaseModel):
     
     user = relationship('User', foreign_keys=[user_id], backref=backref('user_promotion_usages', lazy=True))
     promotion = relationship('Promotion', foreign_keys=[promotion_id], backref=backref('user_promotion_usages', lazy=True))
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'promotion_id', name='unique_user_promotion'),)
