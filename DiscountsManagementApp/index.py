@@ -113,7 +113,7 @@ def register_routes(target_app):
         else:
             is_using_promotion = False
 
-        is_valid, error_message = validate_order_data(current_user, sub_total_amount=sub_total_amount,
+        is_valid, error_message = validate_order_data(sub_total_amount=sub_total_amount,
                                                       promotion=promotion, promotion_usage=user_promotion_usage,
                                                       is_using_promotion=is_using_promotion, discount_amount=discount_amount)
         if not is_valid:
