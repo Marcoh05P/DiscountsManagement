@@ -165,6 +165,10 @@ def register_routes(target_app):
         amount = request.args.get('amount', type=float)
         ptype = request.args.get('ptype')
         page = request.args.get('page', 1, type=int)
+        
+        if page < 1:
+            return jsonify({'error': 'Số trang không hợp lệ!'}), 400
+
         promotions = dao.get_promotions(
             code=code, page=page, order_value=amount, ptype=ptype)
         return jsonify({
