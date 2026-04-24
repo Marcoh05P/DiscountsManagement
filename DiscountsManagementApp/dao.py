@@ -61,10 +61,16 @@ def update_order(order_id, status=None):
 def get_promotion_by_code(code):
     used_count = func.coalesce(func.sum(UserPromotionUsage.usage_count), 0)
     remaining_count = (Promotion.availability_count - used_count).label('remaining_availability_count')
-    promotion, remaining_availability_count = db.session.query(Promotion, remaining_count).outerjoin(
+    result = db.session.query(Promotion, remaining_count).outerjoin(
         UserPromotionUsage,
         UserPromotionUsage.promotion_id == Promotion.id
     ).group_by(Promotion.id).filter(Promotion.active.is_(True), Promotion.code == code.strip()).first()
+
+    if not result:
+        return None
+    else:
+        promotion, remaining_availability_count = result
+
     promotion.remaining_availability_count = max(0, int(remaining_availability_count or 0)) if promotion else 0
     return promotion
 
