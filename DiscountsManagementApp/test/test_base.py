@@ -316,6 +316,7 @@ def sample_order(test_session, sample_user, sample_promotion):
     less100k = sample_promotion[11]
     less150k = sample_promotion[12]
     fast60k = sample_promotion[18]
+    new10 = sample_promotion[0]
 
     orders = [
         create_order(
@@ -402,6 +403,20 @@ def sample_order(test_session, sample_user, sample_promotion):
             final_amount=190000,
             promotion_id=fast60k.id,
         ),
+        create_order(
+            customer_id=user1.id,
+            sub_total_amount=300000,
+            discount_amount=30000,
+            final_amount=270000,
+            promotion_id=new10.id,
+        ),
+        create_order(
+            customer_id=user1.id,
+            sub_total_amount=300000,
+            discount_amount=30000,
+            final_amount=270000,
+            promotion_id=new10.id,
+        ),
     ]
 
     return orders
@@ -419,6 +434,7 @@ def sample_user_promotion_usage(test_session, sample_user, sample_promotion, sam
     less100k = sample_promotion[11]
     less150k = sample_promotion[12]
     fast60k = sample_promotion[18]
+    new10 = sample_promotion[0]
 
     usages = [
         UserPromotionUsage(user_id=user1.id, promotion_id=save15.id, usage_count=2),
@@ -427,6 +443,7 @@ def sample_user_promotion_usage(test_session, sample_user, sample_promotion, sam
         UserPromotionUsage(user_id=user1.id, promotion_id=less100k.id, usage_count=2),
         UserPromotionUsage(user_id=user2.id, promotion_id=less150k.id, usage_count=2),
         UserPromotionUsage(user_id=user3.id, promotion_id=fast60k.id, usage_count=2),
+        UserPromotionUsage(user_id=user1.id, promotion_id=new10.id, usage_count=2),
     ]
 
     test_session.add_all(usages)
