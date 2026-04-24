@@ -12,4 +12,5 @@ if __name__ == '__main__':
     #     db.session.add(u)
     #     db.session.commit()
     #     print("Admin user created with phone number '0706823664' and password '123456'")
+    index.register_routes(app)
     app.run(debug=True)

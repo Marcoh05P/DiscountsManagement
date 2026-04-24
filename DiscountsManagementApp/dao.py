@@ -4,7 +4,7 @@ from sqlalchemy import func, or_
 
 from DiscountsManagementApp.models import User, UserRole, Promotion, Order, UserPromotionUsage
 from DiscountsManagementApp import db, app
-
+from flask import current_app
 
 def get_user_by_phone_number(phone_number):
     return User.query.filter_by(phone_number=phone_number).first()
@@ -69,13 +69,15 @@ def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_av
     query = db.session.query(Promotion, remaining_count).outerjoin(
         UserPromotionUsage,
         UserPromotionUsage.promotion_id == Promotion.id
-    ).group_by(Promotion.id).filter(Promotion.active.is_(True), Promotion.start_date <= datetime.now(), Promotion.expire_date >= datetime.now())
+    ).group_by(Promotion.id).filter(Promotion.active.is_(True), Promotion.start_date <= datetime.now())
 
     if code:
         query = query.filter(Promotion.code.contains(code.strip()))
 
     if expired:
         query = query.filter(Promotion.expire_date < datetime.now())
+    else:
+        query = query.filter(Promotion.expire_date >= datetime.now())
 
     if ptype:
         query = query.filter(Promotion.promotion_type == ptype)
@@ -100,7 +102,7 @@ def get_promotions(code=None, expired=False, ptype=None, order_value=None, is_av
     if page < 1:
         page = 1
 
-    pagination = query.paginate(page=page, per_page=app.config['PAGE_SIZE'])
+    pagination = query.paginate(page=page, per_page=current_app.config['PAGE_SIZE'])
     promotions = []
     for promotion, remaining_availability_count in pagination.items:
         promotion.remaining_availability_count = max(0, int(remaining_availability_count or 0))
@@ -128,9 +130,15 @@ def get_orders_by_customer(customer_id, page=None, sort_by='newest'):
     else:
         query = query.order_by(Order.created_date.desc())
 
-    if not page:
+    try:
+        page = int(page)
+    except (TypeError, ValueError):
         page = 1
-    return query.paginate(page=page, per_page=app.config['PAGE_SIZE'])
+
+    if page < 1:
+        page = 1
+        
+    return query.paginate(page=page, per_page=current_app.config['PAGE_SIZE'])
 
 
 def get_order_by_id(order_id):
