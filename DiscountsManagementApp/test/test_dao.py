@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import current_app
 import pytest
 
-from DiscountsManagementApp.dao import add_user, auth_user, create_order, create_user_promotion_usage, get_promotion_by_code, get_promotions, get_user_by_phone_number, update_order
+from DiscountsManagementApp.dao import add_user, auth_user, create_order, create_user_promotion_usage, get_order_by_id, get_orders_by_customer, get_promotion_by_code, get_promotions, get_user_by_phone_number, get_user_promotion_usage, update_order
 from DiscountsManagementApp.test.test_base import test_app, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage
 
 
@@ -213,10 +213,40 @@ def test_get_promotions_include_not_available(test_session, sample_promotion, sa
     assert any(p.remaining_availability_count == 0 for p in promotions.items)
 
 
+def test_get_promotions_with_sorting(test_session, sample_promotion, sample_user_promotion_usage):
+    newest_promotion = get_promotions(sort_by='newest')
+    assert newest_promotion.pages == 3
+    assert newest_promotion.page == 1
+    assert newest_promotion.total == 8
+    assert len(newest_promotion.items) == 3
+    assert all(newest_promotion.items[i].start_date >= newest_promotion.items[i +
+               1].start_date for i in range(len(newest_promotion.items)-1))
+
+    expire_soon_promotion = get_promotions(sort_by='expire_soon')
+    assert newest_promotion.pages == 3
+    assert newest_promotion.page == 1
+    assert newest_promotion.total == 8
+    assert len(newest_promotion.items) == 3
+    assert all(expire_soon_promotion.items[i].expire_date <= expire_soon_promotion.items[i +
+               1].expire_date for i in range(len(expire_soon_promotion.items)-1))
+    
+    invalid_sort_promotion = get_promotions(sort_by='ssdsd')
+    assert invalid_sort_promotion.pages == 3
+    assert invalid_sort_promotion.page == 1
+    assert invalid_sort_promotion.total == 8
+    assert len(invalid_sort_promotion.items) == 3
+
+
+def test_get_promotions_with_not_found_page(test_session, sample_promotion, sample_user_promotion_usage):
+    with pytest.raises(Exception):
+        promotions = get_promotions(page=99999999)
+
+
 def test_create_user_promotion_usage(test_session, sample_user, sample_promotion):
     user = sample_user[0]
     promotion = sample_promotion[0]
-    usage = create_user_promotion_usage(user_id=user.id, promotion_id=promotion.id)
+    usage = create_user_promotion_usage(
+        user_id=user.id, promotion_id=promotion.id)
     assert usage is not None
     assert usage.user_id == user.id
     assert usage.promotion_id == promotion.id
@@ -242,3 +272,71 @@ def test_create_user_promotion_usage_duplicate(test_session, sample_user, sample
         create_user_promotion_usage(user_id=user.id, promotion_id=promotion.id)
 
 
+def test_get_user_promotion_usage_success(test_session, sample_user, sample_promotion, sample_user_promotion_usage):
+    user = sample_user[0]
+    promotion = sample_promotion[1]
+    usage = get_user_promotion_usage(
+        user_id=user.id, promotion_id=promotion.id)
+    assert usage is not None
+    assert usage.user_id == user.id
+    assert usage.promotion_id == promotion.id
+
+
+def test_get_user_promotion_usage_not_found(test_session, sample_user, sample_promotion):
+    user = sample_user[0]
+    promotion = sample_promotion[0]
+    usage = get_user_promotion_usage(
+        user_id=user.id, promotion_id=promotion.id)
+    assert usage is None
+
+
+@pytest.mark.parametrize("customer_id, page, expected_page, expected_pages, expected_total, expected_count", [
+    (1, 1, 1, 2, 4, 3),
+    (1, 2, 2, 2, 4, 1),
+    (0, 1, 1, 0, 0, 0)
+])
+def test_get_orders_by_customer(test_session, sample_order, customer_id, page, expected_page, expected_pages, expected_total, expected_count):
+    orders = get_orders_by_customer(customer_id=customer_id, page=page)
+    assert orders.pages == expected_pages
+    assert orders.page == expected_page
+    assert orders.total == expected_total
+    assert len(orders.items) == expected_count
+
+
+def test_get_orders_by_customer_with_sorting(test_session, sample_order):
+    newest_orders = get_orders_by_customer(customer_id=1, sort_by='newest')
+    assert newest_orders.pages == 2
+    assert newest_orders.page == 1
+    assert newest_orders.total == 4
+    assert len(newest_orders.items) == 3
+    assert all(newest_orders.items[i].created_date >= newest_orders.items[i +
+               1].created_date for i in range(len(newest_orders.items)-1))
+
+    oldest_orders = get_orders_by_customer(customer_id=1, sort_by='oldest')
+    assert oldest_orders.pages == 2
+    assert oldest_orders.page == 1
+    assert oldest_orders.total == 4
+    assert len(oldest_orders.items) == 3
+    assert all(oldest_orders.items[i].created_date <= oldest_orders.items[i +
+               1].created_date for i in range(len(oldest_orders.items)-1))
+    
+
+def test_get_orders_by_customer_with_not_found_page(test_session, sample_order):
+    with pytest.raises(Exception):
+        orders = get_orders_by_customer(customer_id=1, page=99999999)
+
+
+def test_get_order_by_id_success(test_session, sample_order):
+    order = get_order_by_id(order_id=1)
+    assert order is not None
+    assert order.id == 1
+    assert order.customer_id == 1
+    assert order.sub_total_amount == 400000
+    assert order.discount_amount == 50000
+    assert order.final_amount == 350000
+    assert order.promotion_id == 2
+
+
+def test_get_order_by_id_not_found(test_session, sample_order):
+    order = get_order_by_id(order_id=99999999)
+    assert order is None
