@@ -9,11 +9,22 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["PAGE_SIZE"] = 8
 
 db = SQLAlchemy(app=app)
-login = LoginManager(app=app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
+login = login_manager
 
-@login.user_loader
+@login_manager.user_loader
 def load_user(user_id):
 	from DiscountsManagementApp.models import User
 
 	return User.query.get(int(user_id))
+
+@login_manager.request_loader
+def load_user_from_request(request):
+	from DiscountsManagementApp import dao
+	auth = request.authorization
+
+	if auth and auth.type == 'basic':
+		return dao.auth_user(auth.username, auth.password)
+	return None
