@@ -130,8 +130,14 @@ def get_orders_by_customer(customer_id, page=None, sort_by='newest'):
     else:
         query = query.order_by(Order.created_date.desc())
 
-    if not page:
+    try:
+        page = int(page)
+    except (TypeError, ValueError):
         page = 1
+
+    if page < 1:
+        page = 1
+        
     return query.paginate(page=page, per_page=current_app.config['PAGE_SIZE'])
 
 
