@@ -49,7 +49,7 @@ def validate_order_data(sub_total_amount=None, promotion=None, promotion_usage=N
             return False, 'Mã khuyến mãi chưa bắt đầu!'
         if promotion.expire_date < datetime.now():
             return False, 'Mã khuyến mãi đã hết hạn!'
-        if promotion.availability_count <= 0:
+        if promotion.remaining_availability_count <= 0:
             return False, 'Mã khuyến mãi đã hết lượt sử dụng!'
         if promotion.min_order_value and sub_total_amount < promotion.min_order_value:
             return False, f'Giá trị đơn hàng phải lớn hơn hoặc bằng {promotion.min_order_value} để áp dụng!'
