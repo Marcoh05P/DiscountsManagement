@@ -24,8 +24,8 @@ class PromotionType(EnumBase):
 
     def get_discount_calculator(self):
         calculators = {
-            PromotionType.COUPON: lambda sub_total, max_discount, value: min(sub_total * value, max_discount if max_discount else sub_total),
-            PromotionType.VOUCHER: lambda sub_total, max_discount, value: value
+            PromotionType.COUPON: lambda sub_total, max_discount, value: min(sub_total * value, max_discount if max_discount else sub_total) if sub_total and type(value) in [int, float] else 0,
+            PromotionType.VOUCHER: lambda sub_total, max_discount, value: min(value, sub_total) if sub_total and type(value) in [int, float] else 0
         }
         return calculators[self]
 
