@@ -113,7 +113,7 @@ def register_routes(target_app):
         else:
             is_using_promotion = False
 
-        is_valid, error_message = validate_order_data(current_user, sub_total_amount=sub_total_amount,
+        is_valid, error_message = validate_order_data(sub_total_amount=sub_total_amount,
                                                       promotion=promotion, promotion_usage=user_promotion_usage,
                                                       is_using_promotion=is_using_promotion, discount_amount=discount_amount)
         if not is_valid:
@@ -165,6 +165,13 @@ def register_routes(target_app):
         amount = request.args.get('amount', type=float)
         ptype = request.args.get('ptype')
         page = request.args.get('page', 1, type=int)
+        
+        if page < 1:
+            return jsonify({'error': 'Số trang không hợp lệ!'}), 400
+
+        if amount and amount < 0:
+            return jsonify({'error': 'Giá trị đơn hàng không hợp lệ!'}), 400
+
         promotions = dao.get_promotions(
             code=code, page=page, order_value=amount, ptype=ptype)
         return jsonify({
