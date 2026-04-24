@@ -114,12 +114,13 @@ def test_update_order_status_invalid_order(test_session):
     assert updated_order is None
 
 
-def test_get_promotion_by_code_success(test_session, sample_promotion):
+def test_get_promotion_by_code_success(test_session, sample_promotion, sample_user_promotion_usage):
     promotion = get_promotion_by_code(code='NEW10')
     assert promotion is not None
     assert promotion.code == 'NEW10'
     assert promotion.promotion_type.name == 'COUPON'
     assert promotion.availability_count == 150
+    assert promotion.remaining_availability_count == 150
     assert promotion.value == 0.10
     assert promotion.max_discount_amount == 100000
     assert promotion.min_order_value == 0
