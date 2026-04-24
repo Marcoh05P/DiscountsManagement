@@ -45,6 +45,8 @@ def validate_order_data(sub_total_amount=None, promotion=None, promotion_usage=N
     if not promotion and is_using_promotion:
         return False, 'Mã khuyến mãi không tồn tại!'
     if promotion:
+        if promotion.start_date > datetime.now():
+            return False, 'Mã khuyến mãi chưa bắt đầu!'
         if promotion.expire_date < datetime.now():
             return False, 'Mã khuyến mãi đã hết hạn!'
         if promotion.availability_count <= 0:
