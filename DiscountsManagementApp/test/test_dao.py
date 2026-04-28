@@ -224,10 +224,10 @@ def test_get_promotions_with_sorting(test_session, sample_promotion, sample_user
                1].start_date for i in range(len(newest_promotion.items)-1))
 
     expire_soon_promotion = get_promotions(sort_by='expire_soon')
-    assert newest_promotion.pages == 3
-    assert newest_promotion.page == 1
-    assert newest_promotion.total == 8
-    assert len(newest_promotion.items) == 3
+    assert expire_soon_promotion.pages == 3
+    assert expire_soon_promotion.page == 1
+    assert expire_soon_promotion.total == 8
+    assert len(expire_soon_promotion.items) == 3
     assert all(expire_soon_promotion.items[i].expire_date <= expire_soon_promotion.items[i +
                1].expire_date for i in range(len(expire_soon_promotion.items)-1))
     
