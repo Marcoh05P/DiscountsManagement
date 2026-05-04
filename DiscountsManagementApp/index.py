@@ -164,10 +164,15 @@ def register_routes(target_app):
         code = request.args.get('code')
         amount = request.args.get('amount', None, type=float)
         ptype = request.args.get('ptype')
-        page = request.args.get('page', None, type=int)
+        page = request.args.get('page')
 
-        if isinstance(page, int) and page < 1:
-            return jsonify({'error': 'Số trang không hợp lệ!'}), 400
+        if page:
+            try:
+                page = int(page)
+                if page < 1:
+                    raise ValueError
+            except ValueError:
+                return jsonify({'error': 'Số trang không hợp lệ!'}), 400
 
         if isinstance(amount, float) and amount < 0:
             return jsonify({'error': 'Giá trị đơn hàng không hợp lệ!'}), 400
