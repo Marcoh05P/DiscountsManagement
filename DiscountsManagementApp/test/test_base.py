@@ -7,9 +7,8 @@ import pytest
 from flask import Flask
 
 from DiscountsManagementApp import db
-from DiscountsManagementApp.dao import create_order
 from DiscountsManagementApp.index import register_routes
-from DiscountsManagementApp.models import Promotion, PromotionType, User, UserPromotionUsage
+from DiscountsManagementApp.models import Order, OrderStatus, Promotion, PromotionType, User, UserPromotionUsage
 
 
 def create_test_app():
@@ -43,10 +42,12 @@ def test_session(test_app):
     yield db.session
     db.session.rollback()
 
+
 @pytest.fixture(autouse=True)
 def time_freezer(freezer):
     freezer.move_to("2026-05-01 12:00:00")
     return freezer
+
 
 class FakeUser:
     def __init__(self, is_authenticated, user_id=None, full_name=None, phone_number=None, role=None):
@@ -75,6 +76,8 @@ Tổng cộng:
 - 2 mã đã hết hạn, đã hết lượt sử dụng
 - 4 mã thời gian hiệu lực chưa bắt đầu
 '''
+
+
 @pytest.fixture
 def sample_promotion(test_session):
     promotions = [
@@ -302,15 +305,19 @@ def sample_promotion(test_session):
     test_session.add_all(promotions)
     test_session.commit()
     return promotions
-    
+
 
 @pytest.fixture
 def sample_user(test_session):
     password_hash = hashlib.md5('password123'.encode("utf-8")).hexdigest()
-    user1 = User(full_name='Nguyen Van A', phone_number='123456789', role='CUSTOMER', password_hash=password_hash)
-    user2 = User(full_name='Nguyen Van B', phone_number='13572468', role='CUSTOMER', password_hash=password_hash)
-    user3 = User(full_name='Nguyen Van C', phone_number='24681357', role='CUSTOMER', password_hash=password_hash)
-    admin = User(full_name='Admin User', phone_number='987654321', role='ADMIN', password_hash=password_hash)
+    user1 = User(full_name='Nguyen Van A', phone_number='123456789',
+                 role='CUSTOMER', password_hash=password_hash)
+    user2 = User(full_name='Nguyen Van B', phone_number='13572468',
+                 role='CUSTOMER', password_hash=password_hash)
+    user3 = User(full_name='Nguyen Van C', phone_number='24681357',
+                 role='CUSTOMER', password_hash=password_hash)
+    admin = User(full_name='Admin User', phone_number='987654321',
+                 role='ADMIN', password_hash=password_hash)
     test_session.add(user1)
     test_session.add(user2)
     test_session.add(user3)
@@ -334,105 +341,116 @@ def sample_order(test_session, sample_user, sample_promotion):
     new10 = sample_promotion[0]
 
     orders = [
-        create_order(
+        Order(
             customer_id=user1.id,
             sub_total_amount=400000,
             discount_amount=50000,
             final_amount=350000,
             promotion_id=save15.id,
         ),
-        create_order(
+        Order(
             customer_id=user1.id,
             sub_total_amount=400000,
             discount_amount=50000,
             final_amount=350000,
             promotion_id=save15.id,
         ),
-        create_order(
+        Order(
             customer_id=user2.id,
             sub_total_amount=600000,
             discount_amount=100000,
             final_amount=500000,
             promotion_id=flash20.id,
         ),
-        create_order(
+        Order(
             customer_id=user2.id,
             sub_total_amount=600000,
             discount_amount=100000,
             final_amount=500000,
             promotion_id=flash20.id,
         ),
-        create_order(
+        Order(
             customer_id=user3.id,
             sub_total_amount=700000,
             discount_amount=150000,
             final_amount=550000,
             promotion_id=bday30.id,
         ),
-        create_order(
+        Order(
             customer_id=user3.id,
             sub_total_amount=700000,
             discount_amount=150000,
             final_amount=550000,
             promotion_id=bday30.id,
         ),
-        create_order(
+        Order(
             customer_id=user1.id,
             sub_total_amount=400000,
             discount_amount=100000,
             final_amount=300000,
             promotion_id=less100k.id,
         ),
-        create_order(
+        Order(
             customer_id=user1.id,
             sub_total_amount=400000,
             discount_amount=100000,
             final_amount=300000,
             promotion_id=less100k.id,
         ),
-        create_order(
+        Order(
             customer_id=user2.id,
             sub_total_amount=600000,
             discount_amount=150000,
             final_amount=450000,
             promotion_id=less150k.id,
         ),
-        create_order(
+        Order(
             customer_id=user2.id,
             sub_total_amount=600000,
             discount_amount=150000,
             final_amount=450000,
             promotion_id=less150k.id,
         ),
-        create_order(
+        Order(
             customer_id=user3.id,
             sub_total_amount=250000,
             discount_amount=60000,
             final_amount=190000,
             promotion_id=fast60k.id,
         ),
-        create_order(
+        Order(
             customer_id=user3.id,
             sub_total_amount=250000,
             discount_amount=60000,
             final_amount=190000,
             promotion_id=fast60k.id,
         ),
-        create_order(
+        Order(
             customer_id=user1.id,
             sub_total_amount=300000,
             discount_amount=30000,
             final_amount=270000,
             promotion_id=new10.id,
         ),
-        create_order(
+        Order(
             customer_id=user1.id,
             sub_total_amount=300000,
             discount_amount=30000,
             final_amount=270000,
             promotion_id=new10.id,
+            status=OrderStatus.COMPLETED
+        ),
+        Order(
+            customer_id=user2.id,
+            sub_total_amount=300000,
+            discount_amount=30000,
+            final_amount=270000,
+            promotion_id=new10.id,
+            status=OrderStatus.CANCELLED
         ),
     ]
+    test_session.add_all(orders)
+    test_session.commit()
 
     return orders
 
@@ -452,13 +470,20 @@ def sample_user_promotion_usage(test_session, sample_user, sample_promotion, sam
     new10 = sample_promotion[0]
 
     usages = [
-        UserPromotionUsage(user_id=user1.id, promotion_id=save15.id, usage_count=2),
-        UserPromotionUsage(user_id=user2.id, promotion_id=flash20.id, usage_count=2),
-        UserPromotionUsage(user_id=user3.id, promotion_id=bday30.id, usage_count=2),
-        UserPromotionUsage(user_id=user1.id, promotion_id=less100k.id, usage_count=2),
-        UserPromotionUsage(user_id=user2.id, promotion_id=less150k.id, usage_count=2),
-        UserPromotionUsage(user_id=user3.id, promotion_id=fast60k.id, usage_count=2),
-        UserPromotionUsage(user_id=user1.id, promotion_id=new10.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user1.id, promotion_id=save15.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user2.id, promotion_id=flash20.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user3.id, promotion_id=bday30.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user1.id, promotion_id=less100k.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user2.id, promotion_id=less150k.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user3.id, promotion_id=fast60k.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user1.id, promotion_id=new10.id, usage_count=2),
     ]
 
     test_session.add_all(usages)
