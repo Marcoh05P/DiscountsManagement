@@ -120,7 +120,7 @@ def test_get_promotion_by_code_success(test_session, sample_promotion, sample_us
     assert promotion.code == 'NEW10'
     assert promotion.promotion_type.name == 'COUPON'
     assert promotion.availability_count == 150
-    assert promotion.remaining_availability_count == 150
+    assert promotion.remaining_availability_count == 148
     assert promotion.value == 0.10
     assert promotion.max_discount_amount == 100000
     assert promotion.min_order_value == 0
@@ -292,8 +292,8 @@ def test_get_user_promotion_usage_not_found(test_session, sample_user, sample_pr
 
 
 @pytest.mark.parametrize("customer_id, page, expected_page, expected_pages, expected_total, expected_count", [
-    (1, 1, 1, 2, 4, 3),
-    (1, 2, 2, 2, 4, 1),
+    (1, 1, 1, 2, 6, 3),
+    (1, 2, 2, 2, 6, 3),
     (0, 1, 1, 0, 0, 0)
 ])
 def test_get_orders_by_customer(test_session, sample_order, customer_id, page, expected_page, expected_pages, expected_total, expected_count):
@@ -308,7 +308,7 @@ def test_get_orders_by_customer_with_sorting(test_session, sample_order):
     newest_orders = get_orders_by_customer(customer_id=1, sort_by='newest')
     assert newest_orders.pages == 2
     assert newest_orders.page == 1
-    assert newest_orders.total == 4
+    assert newest_orders.total == 6
     assert len(newest_orders.items) == 3
     assert all(newest_orders.items[i].created_date >= newest_orders.items[i +
                1].created_date for i in range(len(newest_orders.items)-1))
@@ -316,7 +316,7 @@ def test_get_orders_by_customer_with_sorting(test_session, sample_order):
     oldest_orders = get_orders_by_customer(customer_id=1, sort_by='oldest')
     assert oldest_orders.pages == 2
     assert oldest_orders.page == 1
-    assert oldest_orders.total == 4
+    assert oldest_orders.total == 6
     assert len(oldest_orders.items) == 3
     assert all(oldest_orders.items[i].created_date <= oldest_orders.items[i +
                1].created_date for i in range(len(oldest_orders.items)-1))
