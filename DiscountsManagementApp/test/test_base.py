@@ -2,6 +2,7 @@ from ctypes.util import test
 from datetime import datetime
 import hashlib
 
+from flask_login import LoginManager
 import pytest
 from flask import Flask
 
@@ -17,6 +18,7 @@ def create_test_app():
     app.config["PAGE_SIZE"] = 3
     app.config["TESTING"] = True
     db.init_app(app)
+    login_manager = LoginManager(app=app)
     register_routes(app)
 
     return app
@@ -46,6 +48,13 @@ def time_freezer(freezer):
     freezer.move_to("2026-05-01 12:00:00")
     return freezer
 
+class FakeUser:
+    def __init__(self, is_authenticated, user_id=None, full_name=None, phone_number=None, role=None):
+        self.is_authenticated = is_authenticated
+        self.id = user_id
+        self.full_name = full_name
+        self.phone_number = phone_number
+        self.role = role
 
 
 '''
