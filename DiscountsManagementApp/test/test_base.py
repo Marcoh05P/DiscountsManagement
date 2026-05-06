@@ -44,14 +44,14 @@ def test_session(test_app):
 
 '''
 Dữ liệu mẫu bao gồm 20 mã khuyến mãi:
-- 4 mã COUPON đã có hiệu lực, chưa hết hạn, còn số lượt sử dụng
-- 2 mã COUPON chưa hết hạn, nhưng đã hết lượt sử dụng
-- 2 mã COUPON đã hết hạn, trong đó 1 mã đã hết lượt sử dụng
-- 2 mã COUPON thời gian hiệu lực chưa bắt đầu
-- 4 mã VOUCHER đã có hiệu lực, chưa hết hạn, còn số lượt sử dụng
-- 2 mã VOUCHER chưa hết hạn, nhưng đã hết lượt sử dụng
-- 2 mã VOUCHER đã hết hạn, trong đó 1 mã đã hết lượt sử dụng
-- 2 mã VOUCHER thời gian hiệu lực chưa bắt đầu
+- 4 mã COUPON đã có hiệu lực, chưa hết hạn, còn số lượt sử dụng (NEW10, VIP25, WEEKEND5, MORNING12)
+- 2 mã COUPON chưa hết hạn, nhưng đã hết lượt sử dụng (SAVE15, FLASH20)
+- 2 mã COUPON đã hết hạn, trong đó 1 mã đã hết lượt sử dụng (SUMMER18 còn lượt, BDAY30 hết lượt)
+- 2 mã COUPON thời gian hiệu lực chưa bắt đầu (APPONLY8, LOYAL7)
+- 4 mã VOUCHER đã có hiệu lực, chưa hết hạn, còn số lượt sử dụng (SHIP50K, LESS200K, BIG300K, NIGHT80K)
+- 2 mã VOUCHER chưa hết hạn, nhưng đã hết lượt sử dụng (LESS100K, LESS150K)
+- 2 mã VOUCHER đã hết hạn, trong đó 1 mã đã hết lượt sử dụng (HOLIDAY120 còn lượt, FAST60K hết lượt)
+- 2 mã VOUCHER thời gian hiệu lực chưa bắt đầu (PAYDAY90K, FREEDAY110)
 =====================================================================
 Tổng cộng:
 - 8 mã còn hiệu lực, chưa hết hạn, còn số lượt sử dụng
