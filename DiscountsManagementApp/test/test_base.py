@@ -34,12 +34,14 @@ def test_app():
         db.create_all()
         yield app
         db.drop_all()
+        db.engine.dispose()
 
 
 @pytest.fixture
 def test_session(test_app):
     yield db.session
     db.session.rollback()
+    db.session.remove()
 
 
 @pytest.fixture(autouse=True)
