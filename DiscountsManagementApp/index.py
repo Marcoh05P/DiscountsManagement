@@ -162,7 +162,7 @@ def register_routes(target_app):
     @target_app.route('/api/promotions', methods=['GET'])
     def get_promotions():
         code = request.args.get('code')
-        amount = request.args.get('amount', None, type=float)
+        amount = request.args.get('amount')
         ptype = request.args.get('ptype')
         page = request.args.get('page')
 
@@ -174,8 +174,13 @@ def register_routes(target_app):
             except ValueError:
                 return jsonify({'error': 'Số trang không hợp lệ!'}), 400
 
-        if isinstance(amount, float) and amount < 0:
-            return jsonify({'error': 'Giá trị đơn hàng không hợp lệ!'}), 400
+        if amount:
+            try:
+                amount = float(amount)
+                if amount < 0:
+                    raise ValueError
+            except ValueError:
+                return jsonify({'error': 'Giá trị đơn hàng không hợp lệ!'}), 400
 
         promotions = dao.get_promotions(
             code=code, page=page, order_value=amount, ptype=ptype)
