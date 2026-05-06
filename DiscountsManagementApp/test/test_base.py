@@ -41,6 +41,12 @@ def test_session(test_app):
     yield db.session
     db.session.rollback()
 
+@pytest.fixture(autouse=True)
+def time_freezer(freezer):
+    freezer.move_to("2026-05-01 12:00:00")
+    return freezer
+
+
 
 '''
 Dữ liệu mẫu bao gồm 20 mã khuyến mãi:

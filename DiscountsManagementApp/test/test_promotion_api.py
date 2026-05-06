@@ -1,4 +1,4 @@
-from DiscountsManagementApp.test.test_base import test_app, test_client, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage
+from DiscountsManagementApp.test.test_base import test_app, test_client, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage, time_freezer
 import pytest
 
 

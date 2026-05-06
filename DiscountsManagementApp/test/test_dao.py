@@ -4,7 +4,7 @@ from flask import current_app
 import pytest
 
 from DiscountsManagementApp.dao import add_user, auth_user, create_order, create_user_promotion_usage, get_order_by_id, get_orders_by_customer, get_promotion_by_code, get_promotions, get_user_by_phone_number, get_user_promotion_usage, update_order
-from DiscountsManagementApp.test.test_base import test_app, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage
+from DiscountsManagementApp.test.test_base import test_app, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage, time_freezer
 
 
 def test_get_user_by_phone_number_success(test_session, sample_user):
