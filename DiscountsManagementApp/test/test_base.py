@@ -484,6 +484,8 @@ def sample_user_promotion_usage(test_session, sample_user, sample_promotion, sam
             user_id=user3.id, promotion_id=fast60k.id, usage_count=2),
         UserPromotionUsage(
             user_id=user1.id, promotion_id=new10.id, usage_count=2),
+        UserPromotionUsage(
+            user_id=user2.id, promotion_id=new10.id, usage_count=0),
     ]
 
     test_session.add_all(usages)
