@@ -1,4 +1,5 @@
-from DiscountsManagementApp.test.test_base import test_app, test_client, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage, time_freezer
+from DiscountsManagementApp.models import UserRole
+from DiscountsManagementApp.test.test_base import FakeUser, test_app, test_client, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage, time_freezer
 import pytest
 
 
@@ -19,6 +20,7 @@ import pytest
     (None, None, None, 'abc', 400, 1, 0, False, False, 0, 'Số trang không hợp lệ!'),
 
 ])
+
 def test_get_promotion(test_client, sample_promotion, sample_user_promotion_usage, code, amount, ptype, page, expected_status_code, expected_page, expected_total_pages, expected_has_next, expected_has_prev, expected_items_count, error_message):
     res = test_client.get('api/promotions', query_string={
         'code': code,
@@ -48,3 +50,43 @@ def test_get_promotion(test_client, sample_promotion, sample_user_promotion_usag
     elif res.status_code == 400:
         data = res.get_json()
         assert data['error'] == error_message
+        
+#TODO: Test nghiệp vụ tạo promotion
+@pytest.mark.parametrize("user_id, user-role, code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount, min_order_value, description", [
+    ()
+
+
+])
+
+def test_create_promotion(test_client, mocker, sample_user):
+    fakeUser = FakeUser(is_authenticated=True, user_id=4, role=UserRole.ADMIN)
+    mocker.patch("flask_login.utils._get_user", return_value=fakeUser)
+
+    res = test_client.post('/api/promotions', data={
+        'code': 'TESTCODE',
+        'promotion_type': 'VOUCHER',
+        'value': 10000,
+        'availability_count': 100,
+        'start_date': '2024-01-01 00:00:00',
+        'expire_date': '2024-12-31 23:59:59',
+        'max_discount_amount': 0,
+        'min_order_value': 50000,
+        'description': 'Mã khuyến mãi test'
+    })
+    assert res.status_code == 201
+    data = res.get_json()
+    assert data['code'] == 'TESTCODE'
+    assert data['promotion_type'] == 'VOUCHER'
+    assert data['value'] == 10000
+    assert data['availability_count'] == 100
+    assert data['start_date'] == '2024-01-01T00:00:00'
+    assert data['expire_date'] == '2024-12-31T23:59:59'
+    assert data['max_discount_amount'] == 0
+    assert data['min_order_value'] == 50000
+    assert data['description'] == 'Mã khuyến mãi test'
+
+    res = test_client.post('/api/promotions', data={
+        'code': 'TESTCODE',
+        'promotion_type': 'COUPON',
+
+    })
