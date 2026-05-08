@@ -9,7 +9,7 @@ def role_required(*roles):
         @wraps(func)
         @login_required
         def wrapper(*args, **kwargs):
-            if current_user.role not in roles:
+            if current_user.role.name not in roles:
                 return redirect(url_for('index'))
             return func(*args, **kwargs)
         return wrapper
