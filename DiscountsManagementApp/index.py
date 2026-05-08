@@ -164,6 +164,7 @@ def register_routes(target_app):
         except Exception as ex:
             return jsonify({'error': f'Không thể cập nhật đơn hàng do {str(ex)}'}), 400
 
+    #API
     @target_app.route('/api/promotions', methods=['GET'])
     def get_promotions():
         code = request.args.get('code')
@@ -201,7 +202,6 @@ def register_routes(target_app):
     @role_required('ADMIN')
     def create_promotion():
         code = request.form.get('code', type=str)
-        
         start_date = request.form.get('start_date')
         start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
         
@@ -214,9 +214,9 @@ def register_routes(target_app):
         max_discount_amount = request.form.get('max_discount_amount', type=float)
         min_order_value = request.form.get('min_order_value', type=float)
         description = request.form.get('description', type=str)
-
-        if validate_add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value) == False:
-            return jsonify({'error': 'Dữ liệu không hợp lệ!'}), 400
+        is_valid, error_message = validate_add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value)
+        if not is_valid:
+            return jsonify({'error': error_message}), 400
         else:
             try:
                 promotion = dao.add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value, description)

@@ -341,3 +341,5 @@ def test_get_order_by_id_success(test_session, sample_order):
 def test_get_order_by_id_not_found(test_session, sample_order):
     order = get_order_by_id(order_id=99999999)
     assert order is None
+
+#TOTO Viết unit test cho add_promotion

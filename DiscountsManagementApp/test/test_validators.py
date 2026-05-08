@@ -149,3 +149,5 @@ def test_validate_order_update(customer_id, old_status, new_status, current_user
     is_valid, error = validate_order_update(customer_id, old_status, new_status)
     assert is_valid == expected
     assert error == error_message
+    
+#TODO: Viết unit test cho validate_add_promotion
