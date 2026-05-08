@@ -2,7 +2,8 @@ from flask import jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from DiscountsManagementApp import app, dao
-from DiscountsManagementApp.dao import check_phone_number_exists, get_order_by_id, get_promotion_by_code, get_user_promotion_usage
+from DiscountsManagementApp.dao import check_phone_number_exists, get_order_by_id, get_promotion_by_code, \
+    get_user_promotion_usage, get_user_by_id
 from DiscountsManagementApp.models import UserRole
 from DiscountsManagementApp.utils import update_availability
 from DiscountsManagementApp.validators.base import validate_order_update, validate_registration_data, validate_order_data
@@ -151,9 +152,10 @@ def register_routes(target_app):
             old_status = order.status.name
             updated_order = dao.update_order(order_id, status=status)
             user_promotion_usage = get_user_promotion_usage(
-                user_id=current_user.id, promotion_id=updated_order.promotion_id) if updated_order.promotion_id else None
+                user_id=order.customer_id, promotion_id=updated_order.promotion_id) if updated_order.promotion_id else None
+            user = get_user_by_id(order.customer_id)
             if status == 'CANCELLED' and old_status == 'PENDING':
-                update_availability(user=current_user, promotion=None,
+                update_availability(user=user, promotion=None,
                                     user_promotion_usage=user_promotion_usage, increment_usage=False)
             return jsonify(updated_order.to_dict()), 204
         except Exception as ex:

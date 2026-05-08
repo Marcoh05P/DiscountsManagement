@@ -9,6 +9,9 @@ from flask import current_app
 def get_user_by_phone_number(phone_number):
     return User.query.filter_by(phone_number=phone_number).first()
 
+def get_user_by_id(user_id):
+    return User.query.get(user_id)
+
 def auth_user(phone_number, password):
     if not phone_number or not password:
         return None

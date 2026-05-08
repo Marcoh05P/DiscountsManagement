@@ -4,7 +4,7 @@ import pytest
 
 from DiscountsManagementApp.dao import get_promotion_by_code, get_user_promotion_usage
 from DiscountsManagementApp.validators.base import is_coupon, validate_date_range, validate_max_discount_amount, validate_order_data, validate_order_update, validate_password_value, validate_phone_number, validate_promotion_value, validate_registration_data
-from DiscountsManagementApp.test.test_base import sample_promotion, test_app, test_session, sample_user_promotion_usage, sample_user, sample_order
+from DiscountsManagementApp.test.test_base import sample_promotion, test_app, test_session, sample_user_promotion_usage, sample_user, sample_order, time_freezer
 
 
 @pytest.mark.parametrize("value, expected", [
