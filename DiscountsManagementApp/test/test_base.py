@@ -9,6 +9,10 @@ from DiscountsManagementApp import db
 from DiscountsManagementApp.index import register_routes
 from DiscountsManagementApp.models import Order, OrderStatus, Promotion, PromotionType, User, UserPromotionUsage
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 
 def create_test_app():
     app = Flask(__name__)
@@ -493,3 +497,15 @@ def sample_user_promotion_usage(test_session, sample_user, sample_promotion, sam
     test_session.commit()
 
     return usages
+
+@pytest.fixture
+def driver():
+    browser = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install())
+    )
+    browser.maximize_window()
+    browser.implicitly_wait(10)
+
+    yield browser
+
+    browser.quit()
