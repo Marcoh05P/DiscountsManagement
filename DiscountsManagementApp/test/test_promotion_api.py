@@ -62,9 +62,26 @@ def test_get_promotion(test_client, sample_promotion, sample_user_promotion_usag
     (4, UserRole.ADMIN, 'NEWCODE', 'VOUCHER', 20000, 100, '2026-01-01 00:00:00',
      '2026-12-31 23:59:59', None, None, 'Test description', 201, 21, None, 0, 100, None),
 
-    # Thất bại do không chưa đăng nhập
+    # Thất bại do chưa đăng nhập
     (None, None, 'NEWCODE', 'COUPON', 0.2, 100, '2026-01-01 00:00:00',
-     '2026-12-31 23:59:59', 20000, 40000, 'Test description', 403, None, None, None, None, None),
+     '2026-12-31 23:59:59', 20000, 40000, 'Test description', 401, None, None, None, None, None),
+
+    # Thất bại do dữ liệu không hợp lệ (ánh xạ từ test_validation.py)
+    (4, UserRole.ADMIN, '', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Mã khuyến mãi là bắt buộc!'),
+    (4, UserRole.ADMIN, 'MAKM1', 'YARSSH', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Loại khuyến mãi không hợp lệ!'),
+    (4, UserRole.ADMIN, 'MAKM2', 'COUPON', 0.6, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Đối với loại COUPON, giá trị khuyến mãi phải nhỏ hơn hoặc bằng 0.5.'),
+    (4, UserRole.ADMIN, 'MAKM3', 'VOUCHER', 999, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 0, 0, 'Test', 400, None, None, None, None, 'Đối với loại VOUCHER, giá trị khuyến mãi phải lớn hơn hoặc bằng 1000.'),
+    (4, UserRole.ADMIN, 'MAKM4', 'COUPON', 0.1, -1, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Số lượng sử dụng phải là một số nguyên dương hoặc bằng 0!'),
+    (4, UserRole.ADMIN, 'MAKM5', 'COUPON', 0.1, 5, '2026-05-15 00:00:00', '2026-05-10 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Ngày hết hạn phải sau ngày bắt đầu.'),
+    (4, UserRole.ADMIN, 'MAKM6', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 0, 50000, 'Test', 400, None, None, None, None, 'Số tiền giảm giá tối đa phải lớn hơn 0 cho loại COUPON.'),
+    (4, UserRole.ADMIN, 'MAKM7', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 4000, 50000, 'Test', 400, None, None, None, None, 'Số tiền giảm giá tối đa phải ít nhất bằng số tiền giảm giá được tính từ giá trị đơn hàng tối thiểu và giá trị khuyến mãi cho loại COUPON.'),
+    (4, UserRole.ADMIN, 'MAKM8', 'VOUCHER', 1000, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 10, None, 'Test', 400, None, None, None, None, 'Số tiền giảm giá tối đa phải là 0 cho loại VOUCHER.'),
+    (4, UserRole.ADMIN, 'MAKM9', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 201, 21, 5000, 50000, 10, None),
+    (4, UserRole.ADMIN, 'MAKM10', 'VOUCHER', 1000, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 0, None, 'Test', 201, 21, 0, 0, 10, None),
+    
+    #Thất bại do không phải ADMIN
+    (1, UserRole.CUSTOMER, 'NEWCODE', 'COUPON', 0.2, 100, '2026-01-01 00:00:00',
+    '2026-12-31 23:59:59', 20000, 40000, 'Test description', 403, None, None, None, None, None)
 
 ])
 def test_create_promotion(test_client, mocker, sample_user, sample_promotion, user_id, user_role, code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount, min_order_value, description, expected_status_code, expected_id, expected_max_discount_amount, expected_min_order_value, expected_remaining_availability_count, error_message):
