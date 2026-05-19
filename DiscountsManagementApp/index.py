@@ -35,9 +35,11 @@ def register_routes(target_app):
         if request.method == 'POST':
             phone_number = request.form.get('phone_number')
             password = request.form.get('password')
-
-            user = dao.auth_user(phone_number, password)
-
+            try:
+                user = dao.auth_user(phone_number, password)
+            except Exception as ex:
+                err_msg = f'Hệ thống có lỗi: {str(ex)}'
+                return render_template('login.html', err_msg=err_msg)
             if user:
                 login_user(user=user)
                 next_page = request.args.get('next')
