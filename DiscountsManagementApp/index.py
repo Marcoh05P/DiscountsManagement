@@ -156,17 +156,17 @@ def register_routes(target_app):
         try:
             old_status = order.status.name
             updated_order = dao.update_order(order_id, status=status)
-            user_promotion_usage = get_user_promotion_usage(
-                user_id=order.customer_id, promotion_id=updated_order.promotion_id) if updated_order.promotion_id else None
-            user = get_user_by_id(order.customer_id)
             if status == 'CANCELLED' and old_status == 'PENDING':
+                user_promotion_usage = get_user_promotion_usage(
+                    user_id=order.customer_id, promotion_id=updated_order.promotion_id) if updated_order.promotion_id else None
+                user = get_user_by_id(order.customer_id)
                 update_availability(user=user, promotion=None,
                                     user_promotion_usage=user_promotion_usage, increment_usage=False)
             return jsonify(updated_order.to_dict()), 204
         except Exception as ex:
             return jsonify({'error': f'Không thể cập nhật đơn hàng do {str(ex)}'}), 400
 
-    #API
+    # API
     @target_app.route('/api/promotions', methods=['GET'])
     def get_promotions():
         code = request.args.get('code')
@@ -199,29 +199,32 @@ def register_routes(target_app):
             'has_prev': promotions.has_prev,
             'items': [item.to_dict() for item in promotions.items]
         })
-        
+
     @target_app.route('/api/promotions', methods=['POST'])
     @role_required('ADMIN')
     def create_promotion():
         code = request.form.get('code', type=str)
         start_date = request.form.get('start_date')
         start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-        
+
         expire_date = request.form.get('expire_date')
         expire_date_dt = datetime.strptime(expire_date, "%Y-%m-%d %H:%M:%S")
-        
+
         promotion_type = request.form.get('promotion_type', type=str)
         availability_count = request.form.get('availability_count', type=int)
         value = request.form.get('value', type=float)
-        max_discount_amount = request.form.get('max_discount_amount', type=float)
+        max_discount_amount = request.form.get(
+            'max_discount_amount', type=float)
         min_order_value = request.form.get('min_order_value', type=float)
         description = request.form.get('description', type=str)
-        is_valid, error_message = validate_add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value)
+        is_valid, error_message = validate_add_promotion(
+            code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value)
         if not is_valid:
             return jsonify({'error': error_message}), 400
         else:
             try:
-                promotion = dao.add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value, description)
+                promotion = dao.add_promotion(code, promotion_type, value, availability_count,
+                                              start_date_dt, expire_date_dt, max_discount_amount, min_order_value, description)
                 return jsonify(promotion.to_dict()), 201
             except Exception as ex:
                 return jsonify({'error': f'Không thể tạo mã khuyến mãi do {str(ex)}'}), 400
