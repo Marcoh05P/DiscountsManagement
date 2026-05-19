@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from DiscountsManagementApp.dao import get_promotion_by_code, get_user_promotion_usage
-from DiscountsManagementApp.validators.base import is_coupon, validate_date_range, validate_max_discount_amount, validate_order_data, validate_order_update, validate_password_value, validate_phone_number, validate_promotion_value, validate_registration_data
+from DiscountsManagementApp.validators.base import is_coupon, validate_add_promotion, validate_date_range, validate_max_discount_amount, validate_order_data, validate_order_update, validate_password_value, validate_phone_number, validate_promotion_value, validate_registration_data
 from DiscountsManagementApp.test.test_base import sample_promotion, test_app, test_session, sample_user_promotion_usage, sample_user, sample_order, time_freezer
 
 
@@ -149,3 +149,67 @@ def test_validate_order_update(customer_id, old_status, new_status, current_user
     is_valid, error = validate_order_update(customer_id, old_status, new_status)
     assert is_valid == expected
     assert error == error_message
+
+#Viết bởi Phi Hùng, test validate nghiệp vụ khi thêm mới khuyến mãi, bao gồm các trường hợp lỗi và thành công, phủ gần hết các nhánh
+@pytest.mark.parametrize(
+    "code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount, min_order_value, expected, error_message",
+    [
+        #Thiếu mã giảm giá
+        ("","COUPON", 0.1, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 5000, 50000, False, 'Mã khuyến mãi là bắt buộc!'),
+        #Loại KM sai
+        ("MAKM1", "YARSSH", 0.1, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 5000, 50000, False, 'Loại khuyến mãi không hợp lệ!'),
+        #COUPON: value > 0.5
+        ("MAKM2", "COUPON", 0.6, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 5000, 50000, False, 'Đối với loại COUPON, giá trị khuyến mãi phải nhỏ hơn hoặc bằng 0.5.'),
+        #VOUCHER: value < 1000
+        ("MAKM3", "VOUCHER", 999, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 0, None, False, 'Đối với loại VOUCHER, giá trị khuyến mãi phải lớn hơn hoặc bằng 1000.'),
+        #số lượng mã công bố ra < 0
+        ("MAKM4", "COUPON", 0.1, -1, datetime(2026, 5, 10), datetime(2026, 5, 15), 5000, 50000, False, 'Số lượng sử dụng phải là một số nguyên dương hoặc bằng 0!'),
+        #Ngày hết hạn trước ngày bắt đầu
+        ("MAKM5", "COUPON", 0.1, 5, datetime(2026, 5, 15), datetime(2026, 5, 10), 5000, 50000, False, 'Ngày hết hạn phải sau ngày bắt đầu.'),
+        #COUPON: tiền giảm tối đa <= 0, đặt 0 cho ngay biên á
+        ("MAKM6", "COUPON", 0.1, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 0, 50000, False, 'Số tiền giảm giá tối đa phải lớn hơn 0 cho loại COUPON.'),
+        #COUPON: tiền giảm tối đa nhỏ hơn số tiền giảm tối thiểu được tính từ giá trị đơn hàng tối thiểu và giá trị khuyến mãi, đặt 4000, 4000*10 = 40.000 < 50.000
+        ("MAKM7", "COUPON", 0.1, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 4000, 50000, False, 'Số tiền giảm giá tối đa phải ít nhất bằng số tiền giảm giá được tính từ giá trị đơn hàng tối thiểu và giá trị khuyến mãi cho loại COUPON.'),
+        #VOUCHER: tiền giảm tối đa phải là 0 tại voucher không có giảm tối đa, giảm tối đa = value theo logic
+        ("MAKM8", "VOUCHER", 1000, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 10, None, False, 'Số tiền giảm giá tối đa phải là 0 cho loại VOUCHER.'),
+        #thành công tạo COUPON  
+        ("MAKM9", "COUPON", 0.1, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 5000, 50000, True, ''),
+        #thành công tạo VOUCHER
+        ("MAKM10", "VOUCHER", 1000, 10, datetime(2026, 5, 10), datetime(2026, 5, 15), 0, None, True, ''),
+    ]
+)
+
+
+#Generate bởi Copilot, kiểm thử với AI và so sánh với việc viết tay
+# @pytest.mark.parametrize(
+#     "code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount, min_order_value, expected, error_message",
+#     [
+#         ("", "COUPON", 0.1, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 5000, 50000, False, 'Mã khuyến mãi là bắt buộc!'),
+#         ("PROMO1", "INVALID", 0.1, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 5000, 50000, False, 'Loại khuyến mãi không hợp lệ!'),
+#         ("PROMO2", "COUPON", 0.6, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 5000, 50000, False, 'Đối với loại COUPON, giá trị khuyến mãi phải nhỏ hơn hoặc bằng 0.5.'),
+#         ("PROMO3", "VOUCHER", 999, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 0, None, False, 'Đối với loại VOUCHER, giá trị khuyến mãi phải lớn hơn hoặc bằng 1000.'),
+#         ("PROMO4", "COUPON", 0.1, None, datetime(2026, 1, 1), datetime(2026, 1, 2), 5000, 50000, False, 'Số lượng sử dụng phải là một số nguyên dương hoặc bằng 0!'),
+#         ("PROMO5", "COUPON", 0.1, -1, datetime(2026, 1, 1), datetime(2026, 1, 2), 5000, 50000, False, 'Số lượng sử dụng phải là một số nguyên dương hoặc bằng 0!'),
+#         ("PROMO6", "COUPON", 0.1, 10, datetime(2026, 1, 2), datetime(2026, 1, 1), 5000, 50000, False, 'Ngày hết hạn phải sau ngày bắt đầu.'),
+#         ("PROMO7", "COUPON", 0.1, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 0, 50000, False, 'Số tiền giảm giá tối đa phải lớn hơn 0 cho loại COUPON.'),
+#         ("PROMO8", "COUPON", 0.1, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 4000, 50000, False, 'Số tiền giảm giá tối đa phải ít nhất bằng số tiền giảm giá được tính từ giá trị đơn hàng tối thiểu và giá trị khuyến mãi cho loại COUPON.'),
+#         ("PROMO9", "VOUCHER", 1000, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 10, None, False, 'Số tiền giảm giá tối đa phải là 0 cho loại VOUCHER.'),
+#         ("PROMO10", "COUPON", 0.1, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 5000, 50000, True, ''),
+#         ("PROMO11", "VOUCHER", 1000, 10, datetime(2026, 1, 1), datetime(2026, 1, 2), 0, None, True, ''),
+#     ]
+# )
+def test_validate_add_promotion(code, promotion_type, value, availability_count, start_date, expire_date,
+                                max_discount_amount, min_order_value, expected, error_message):
+    is_valid, error = validate_add_promotion(
+        code=code,
+        promotion_type=promotion_type,
+        value=value,
+        availability_count=availability_count,
+        start_date=start_date,
+        expire_date=expire_date,
+        max_discount_amount=max_discount_amount,
+        min_order_value=min_order_value,
+    )
+    assert is_valid == expected
+    assert error == error_message
+    

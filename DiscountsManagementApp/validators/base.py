@@ -108,3 +108,27 @@ def validate_order_update(customer_id, old_status, new_status):
     if old_status != 'PENDING':
         return False, 'Chỉ có thể cập nhật đơn hàng ở trạng thái đang chờ xử lý.'
     return True, ''
+
+def validate_add_promotion(code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount=None, min_order_value=None):
+    if not code or code.strip() == '':
+        return False, 'Mã khuyến mãi là bắt buộc!'
+    if isinstance(promotion_type, PromotionType):
+        ptype = promotion_type
+    else:
+        try:
+            ptype = PromotionType(promotion_type)
+        except Exception:
+            return False, 'Loại khuyến mãi không hợp lệ!'
+
+    is_value_valid, value_error = validate_promotion_value(value, ptype)
+    if not is_value_valid:
+        return False, value_error
+    if availability_count is None or availability_count < 0:
+        return False, 'Số lượng sử dụng phải là một số nguyên dương hoặc bằng 0!'
+    is_date_range_valid, date_range_error = validate_date_range(start_date, expire_date)
+    if not is_date_range_valid:
+        return False, date_range_error
+    is_max_discount_valid, max_discount_error = validate_max_discount_amount(max_discount_amount, ptype, min_order_value, value)
+    if not is_max_discount_valid:
+        return False, max_discount_error
+    return True, ''

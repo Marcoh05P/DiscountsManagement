@@ -1,4 +1,7 @@
-from DiscountsManagementApp.test.test_base import test_app, test_client, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage, time_freezer
+from datetime import datetime
+from DiscountsManagementApp.dao import get_promotion_by_code
+from DiscountsManagementApp.models import UserRole
+from DiscountsManagementApp.test.test_base import FakeUser, test_app, test_client, test_session, sample_user, sample_promotion, sample_order, sample_user_promotion_usage, time_freezer
 import pytest
 
 
@@ -45,6 +48,80 @@ def test_get_promotion(test_client, sample_promotion, sample_user_promotion_usag
         if ptype:
             assert all(item['promotion_type'] ==
                        ptype for item in data['items'])
+    elif res.status_code == 400:
+        data = res.get_json()
+        assert data['error'] == error_message
+
+
+@pytest.mark.parametrize("user_id, user_role, code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount, min_order_value, description, expected_status_code, expected_id, expected_max_discount_amount, expected_min_order_value, expected_remaining_availability_count, error_message", [
+    # Mặc định database đã có sẵn 20 promotion, nên id của order mới sẽ là 21
+
+    # Thành công với ADMIN
+    (4, UserRole.ADMIN, 'NEWCODE', 'COUPON', 0.2, 100, '2026-01-01 00:00:00',
+     '2026-12-31 23:59:59', 20000, 40000, 'Test description', 201, 21, 20000, 40000, 100, None),
+    (4, UserRole.ADMIN, 'NEWCODE', 'VOUCHER', 20000, 100, '2026-01-01 00:00:00',
+     '2026-12-31 23:59:59', None, None, 'Test description', 201, 21, None, 0, 100, None),
+
+    # Thất bại do chưa đăng nhập
+    (None, None, 'NEWCODE', 'COUPON', 0.2, 100, '2026-01-01 00:00:00',
+     '2026-12-31 23:59:59', 20000, 40000, 'Test description', 401, None, None, None, None, None),
+
+    # Thất bại do dữ liệu không hợp lệ (ánh xạ từ test_validation.py)
+    (4, UserRole.ADMIN, '', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Mã khuyến mãi là bắt buộc!'),
+    (4, UserRole.ADMIN, 'MAKM1', 'YARSSH', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Loại khuyến mãi không hợp lệ!'),
+    (4, UserRole.ADMIN, 'MAKM2', 'COUPON', 0.6, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Đối với loại COUPON, giá trị khuyến mãi phải nhỏ hơn hoặc bằng 0.5.'),
+    (4, UserRole.ADMIN, 'MAKM3', 'VOUCHER', 999, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 0, 0, 'Test', 400, None, None, None, None, 'Đối với loại VOUCHER, giá trị khuyến mãi phải lớn hơn hoặc bằng 1000.'),
+    (4, UserRole.ADMIN, 'MAKM4', 'COUPON', 0.1, -1, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Số lượng sử dụng phải là một số nguyên dương hoặc bằng 0!'),
+    (4, UserRole.ADMIN, 'MAKM5', 'COUPON', 0.1, 5, '2026-05-15 00:00:00', '2026-05-10 00:00:00', 5000, 50000, 'Test', 400, None, None, None, None, 'Ngày hết hạn phải sau ngày bắt đầu.'),
+    (4, UserRole.ADMIN, 'MAKM6', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 0, 50000, 'Test', 400, None, None, None, None, 'Số tiền giảm giá tối đa phải lớn hơn 0 cho loại COUPON.'),
+    (4, UserRole.ADMIN, 'MAKM7', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 4000, 50000, 'Test', 400, None, None, None, None, 'Số tiền giảm giá tối đa phải ít nhất bằng số tiền giảm giá được tính từ giá trị đơn hàng tối thiểu và giá trị khuyến mãi cho loại COUPON.'),
+    (4, UserRole.ADMIN, 'MAKM8', 'VOUCHER', 1000, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 10, None, 'Test', 400, None, None, None, None, 'Số tiền giảm giá tối đa phải là 0 cho loại VOUCHER.'),
+    (4, UserRole.ADMIN, 'MAKM9', 'COUPON', 0.1, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 5000, 50000, 'Test', 201, 21, 5000, 50000, 10, None),
+    (4, UserRole.ADMIN, 'MAKM10', 'VOUCHER', 1000, 10, '2026-05-10 00:00:00', '2026-05-15 00:00:00', 0, None, 'Test', 201, 21, 0, 0, 10, None),
+    
+    #Thất bại do không phải ADMIN
+    (1, UserRole.CUSTOMER, 'NEWCODE', 'COUPON', 0.2, 100, '2026-01-01 00:00:00',
+    '2026-12-31 23:59:59', 20000, 40000, 'Test description', 403, None, None, None, None, None)
+
+])
+def test_create_promotion(test_client, mocker, sample_user, sample_promotion, user_id, user_role, code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount, min_order_value, description, expected_status_code, expected_id, expected_max_discount_amount, expected_min_order_value, expected_remaining_availability_count, error_message):
+    fakeUser = FakeUser(
+        is_authenticated=False if user_id is None else True, user_id=user_id, role=user_role)
+    mocker.patch("flask_login.utils._get_user", return_value=fakeUser)
+
+    res = test_client.post('api/promotions', data={
+        'code': code,
+        'promotion_type': promotion_type,
+        'value': value,
+        'availability_count': availability_count,
+        'start_date': start_date,
+        'expire_date': expire_date,
+        'max_discount_amount': max_discount_amount,
+        'min_order_value': min_order_value,
+        'description': description
+    })
+
+    assert res.status_code == expected_status_code
+    if res.status_code == 201:
+        data = res.get_json()
+        promotion = get_promotion_by_code(code)
+        assert promotion is not None
+        assert promotion.id == expected_id == data['id']
+        assert promotion.code == code == data['code']
+        assert promotion.promotion_type.value == promotion_type == data['promotion_type']
+        assert promotion.value == value == data['value']
+        assert promotion.availability_count == availability_count == data['availability_count']
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+        expire_date_obj = datetime.strptime(expire_date, "%Y-%m-%d %H:%M:%S")
+        assert promotion.start_date == start_date_obj == datetime.fromisoformat(
+            data['start_date'])
+        assert promotion.expire_date == expire_date_obj == datetime.fromisoformat(
+            data['expire_date'])
+        assert promotion.max_discount_amount == data['max_discount_amount'] == expected_max_discount_amount
+        assert promotion.min_order_value == data['min_order_value'] == expected_min_order_value
+        assert promotion.description == description == (None if data['description'] == 'null' else data['description'])
+        assert promotion.remaining_availability_count == expected_remaining_availability_count == data['remaining_availability_count']
+
     elif res.status_code == 400:
         data = res.get_json()
         assert data['error'] == error_message

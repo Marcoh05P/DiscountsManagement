@@ -1,12 +1,15 @@
+from datetime import datetime
+
 from flask import jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from DiscountsManagementApp import app, dao
 from DiscountsManagementApp.dao import check_phone_number_exists, get_order_by_id, get_promotion_by_code, \
     get_user_promotion_usage, get_user_by_id
+from DiscountsManagementApp.decorators import role_required
 from DiscountsManagementApp.models import UserRole
 from DiscountsManagementApp.utils import update_availability
-from DiscountsManagementApp.validators.base import validate_order_update, validate_registration_data, validate_order_data
+from DiscountsManagementApp.validators.base import validate_add_promotion, validate_order_update, validate_registration_data, validate_order_data
 
 
 def _default_redirect_for_role(user):
@@ -161,6 +164,7 @@ def register_routes(target_app):
         except Exception as ex:
             return jsonify({'error': f'Không thể cập nhật đơn hàng do {str(ex)}'}), 400
 
+    #API
     @target_app.route('/api/promotions', methods=['GET'])
     def get_promotions():
         code = request.args.get('code')
@@ -193,3 +197,29 @@ def register_routes(target_app):
             'has_prev': promotions.has_prev,
             'items': [item.to_dict() for item in promotions.items]
         })
+        
+    @target_app.route('/api/promotions', methods=['POST'])
+    @role_required('ADMIN')
+    def create_promotion():
+        code = request.form.get('code', type=str)
+        start_date = request.form.get('start_date')
+        start_date_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+        
+        expire_date = request.form.get('expire_date')
+        expire_date_dt = datetime.strptime(expire_date, "%Y-%m-%d %H:%M:%S")
+        
+        promotion_type = request.form.get('promotion_type', type=str)
+        availability_count = request.form.get('availability_count', type=int)
+        value = request.form.get('value', type=float)
+        max_discount_amount = request.form.get('max_discount_amount', type=float)
+        min_order_value = request.form.get('min_order_value', type=float)
+        description = request.form.get('description', type=str)
+        is_valid, error_message = validate_add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value)
+        if not is_valid:
+            return jsonify({'error': error_message}), 400
+        else:
+            try:
+                promotion = dao.add_promotion(code, promotion_type, value, availability_count, start_date_dt, expire_date_dt, max_discount_amount, min_order_value, description)
+                return jsonify(promotion.to_dict()), 201
+            except Exception as ex:
+                return jsonify({'error': f'Không thể tạo mã khuyến mãi do {str(ex)}'}), 400

@@ -341,3 +341,17 @@ def test_get_order_by_id_success(test_session, sample_order):
 def test_get_order_by_id_not_found(test_session, sample_order):
     order = get_order_by_id(order_id=99999999)
     assert order is None
+
+#TOTO Viết unit test cho add_promotion
+def test_add_promotion(test_session, sample_promotion):
+    promotion = sample_promotion[0]
+    assert promotion is not None
+    assert promotion.code == 'NEW10'
+    assert promotion.promotion_type.name == 'COUPON'
+    assert promotion.value == 0.10
+    assert promotion.start_date == datetime(2026, 3, 1, 0, 0, 0)
+    assert promotion.expire_date == datetime(2026, 12, 31, 23, 59, 59)
+    assert promotion.max_discount_amount == 100000
+    assert promotion.min_order_value == 0
+    assert promotion.description == 'Giam 10% cho khach hang moi'
+    

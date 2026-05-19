@@ -36,6 +36,24 @@ def add_user(phone_number, password, full_name, role=UserRole.CUSTOMER):
     except Exception:
         db.session.rollback()
         raise
+    
+def add_promotion(code, promotion_type, value, availability_count, start_date, expire_date, max_discount_amount=None, min_order_value=None, description=None):
+    promotion = Promotion(code=code.strip(),
+                        promotion_type=promotion_type,
+                        value=value,
+                        availability_count=availability_count,
+                        start_date=start_date,
+                        expire_date=expire_date,
+                        max_discount_amount=max_discount_amount,
+                        min_order_value=min_order_value,
+                        description=description)
+    try:
+        db.session.add(promotion)
+        db.session.commit()
+        return promotion
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def create_order(customer_id, sub_total_amount, discount_amount, final_amount, promotion_id=None):
