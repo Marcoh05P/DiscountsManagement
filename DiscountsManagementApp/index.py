@@ -142,7 +142,7 @@ def register_routes(target_app):
                 err_msg = f'Không thể tạo đơn hàng do {str(ex)}'
         return jsonify({'error': err_msg}), 400
 
-    @target_app.route('/orders/<int:order_id>', methods=['PATCH'])
+    @target_app.route('/api/orders/<int:order_id>', methods=['PATCH'])
     @login_required
     def update_order(order_id):
         status = request.form.get('status')
