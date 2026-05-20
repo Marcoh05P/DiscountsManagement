@@ -1,11 +1,10 @@
 from datetime import datetime
 import hashlib
 
-from flask_login import LoginManager
 import pytest
 from flask import Flask
 
-from DiscountsManagementApp import db
+from DiscountsManagementApp import db, login_manager
 from DiscountsManagementApp.index import register_routes
 from DiscountsManagementApp.models import Order, OrderStatus, Promotion, PromotionType, User, UserPromotionUsage
 
@@ -13,12 +12,12 @@ from selenium import webdriver
 
 
 def create_test_app():
-    app = Flask(__name__)
+    app = Flask("DiscountsManagementApp")
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["PAGE_SIZE"] = 3
     app.config["TESTING"] = True
     db.init_app(app)
-    login_manager = LoginManager(app=app)
+    login_manager.init_app(app)
     register_routes(app)
 
     return app
