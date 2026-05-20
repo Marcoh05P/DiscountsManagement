@@ -16,6 +16,7 @@ def create_test_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["PAGE_SIZE"] = 3
     app.config["TESTING"] = True
+    app.secret_key = 'APTX4869'
     db.init_app(app)
     login_manager.init_app(app)
     register_routes(app)
