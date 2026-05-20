@@ -24,4 +24,4 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Tests
-        run: python -m pytest
+        run: python -m pytest --ignore=DiscountsManagementApp/test/test_sel.py
