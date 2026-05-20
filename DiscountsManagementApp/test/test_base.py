@@ -1,22 +1,24 @@
 from datetime import datetime
 import hashlib
 
-from flask_login import LoginManager
 import pytest
 from flask import Flask
 
-from DiscountsManagementApp import db
+from DiscountsManagementApp import db, login_manager
 from DiscountsManagementApp.index import register_routes
 from DiscountsManagementApp.models import Order, OrderStatus, Promotion, PromotionType, User, UserPromotionUsage
 
+from selenium import webdriver
+
 
 def create_test_app():
-    app = Flask(__name__)
+    app = Flask("DiscountsManagementApp")
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["PAGE_SIZE"] = 3
     app.config["TESTING"] = True
+    app.secret_key = 'APTX4869'
     db.init_app(app)
-    login_manager = LoginManager(app=app)
+    login_manager.init_app(app)
     register_routes(app)
 
     return app
@@ -493,3 +495,171 @@ def sample_user_promotion_usage(test_session, sample_user, sample_promotion, sam
     test_session.commit()
 
     return usages
+
+@pytest.fixture
+def selenium_data():
+    from datetime import datetime
+    from DiscountsManagementApp import app, db
+    from DiscountsManagementApp.dao import add_user
+    from DiscountsManagementApp.models import User, Promotion, PromotionType, UserRole
+
+    with app.app_context():
+        user = User.query.filter_by(phone_number='0911111111').first()
+
+        password_hash = hashlib.md5('Sel123@@'.encode("utf-8")).hexdigest()
+
+        if user is None:
+            user = User(
+                full_name='Selenium Customer',
+                phone_number='0911111111',
+                role='CUSTOMER',
+                password_hash=password_hash
+            )
+            db.session.add(user)
+        else:
+            user.full_name = 'Selenium Customer'
+            user.active = True
+            user.role = 'CUSTOMER'
+            user.password_hash = password_hash
+
+        promotion = Promotion.query.filter_by(code='SEL10').first()
+
+        if promotion is None:
+            promotion = Promotion(
+                code='SEL10',
+                start_date=datetime(2026, 1, 1, 0, 0, 0),
+                expire_date=datetime(2026, 12, 31, 23, 59, 59),
+                promotion_type=PromotionType.COUPON,
+                availability_count=100,
+                value=0.1,
+                max_discount_amount=100000,
+                min_order_value=100000,
+                description='Ma giam gia dung cho Selenium'
+            )
+            db.session.add(promotion)
+        else:
+            promotion.active = True
+            promotion.availability_count = 100
+            promotion.value = 0.1
+            promotion.max_discount_amount = 100000
+            promotion.min_order_value = 100000
+            promotion.start_date = datetime(2026, 1, 1, 0, 0, 0)
+            promotion.expire_date = datetime(2026, 12, 31, 23, 59, 59)
+
+        expired_promotion = Promotion.query.filter_by(code='SELEXPIRED').first()
+
+        if expired_promotion is None:
+            expired_promotion = Promotion(
+                code='SELEXPIRED',
+                start_date=datetime(2026, 1, 1, 0, 0, 0),
+                expire_date=datetime(2026, 1, 31, 23, 59, 59),
+                promotion_type=PromotionType.COUPON,
+                availability_count=100,
+                value=0.1,
+                max_discount_amount=100000,
+                min_order_value=100000,
+                description='Ma giam gia het han dung cho Selenium'
+            )
+            db.session.add(expired_promotion)
+        else:
+            expired_promotion.active = True
+            expired_promotion.availability_count = 100
+            expired_promotion.value = 0.1
+            expired_promotion.max_discount_amount = 100000
+            expired_promotion.min_order_value = 100000
+            expired_promotion.start_date = datetime(2026, 1, 1, 0, 0, 0)
+            expired_promotion.expire_date = datetime(2026, 1, 31, 23, 59, 59)
+        out_of_usage_promotion = Promotion.query.filter_by(code='SELOUT').first()
+
+        if out_of_usage_promotion is None:
+            out_of_usage_promotion = Promotion(
+                code='SELOUT',
+                start_date=datetime(2026, 1, 1, 0, 0, 0),
+                expire_date=datetime(2026, 12, 31, 23, 59, 59),
+                promotion_type=PromotionType.COUPON,
+                availability_count=0,
+                value=0.1,
+                max_discount_amount=100000,
+                min_order_value=100000,
+                description='Ma giam gia het luot dung cho Selenium'
+            )
+            db.session.add(out_of_usage_promotion)
+        else:
+            out_of_usage_promotion.active = True
+            out_of_usage_promotion.availability_count = 0
+            out_of_usage_promotion.value = 0.1
+            out_of_usage_promotion.max_discount_amount = 100000
+            out_of_usage_promotion.min_order_value = 100000
+            out_of_usage_promotion.start_date = datetime(2026, 1, 1, 0, 0, 0)
+            out_of_usage_promotion.expire_date = datetime(2026, 12, 31, 23, 59, 59)
+        voucher_promotion = Promotion.query.filter_by(code='SELVOUCHER').first()
+
+        if voucher_promotion is None:
+            voucher_promotion = Promotion(
+                code='SELVOUCHER',
+                start_date=datetime(2026, 1, 1, 0, 0, 0),
+                expire_date=datetime(2026, 12, 31, 23, 59, 59),
+                promotion_type=PromotionType.VOUCHER,
+                availability_count=100,
+                value=20000,
+                max_discount_amount=None,
+                min_order_value=100000,
+                description='Voucher hop le dung cho Selenium'
+            )
+            db.session.add(voucher_promotion)
+        else:
+            voucher_promotion.active = True
+            voucher_promotion.availability_count = 100
+            voucher_promotion.value = 20000
+            voucher_promotion.max_discount_amount = None
+            voucher_promotion.min_order_value = 100000
+            voucher_promotion.start_date = datetime(2026, 1, 1, 0, 0, 0)
+            voucher_promotion.expire_date = datetime(2026, 12, 31, 23, 59, 59)
+        not_started_promotion = Promotion.query.filter_by(code='SELSTART').first()
+
+        if not_started_promotion is None:
+            not_started_promotion = Promotion(
+                code='SELSTART',
+                start_date=datetime(2026, 8, 1, 0, 0, 0),
+                expire_date=datetime(2026, 12, 31, 23, 59, 59),
+                promotion_type=PromotionType.COUPON,
+                availability_count=100,
+                value=0.1,
+                max_discount_amount=100000,
+                min_order_value=100000,
+                description='Ma giam gia chua den ngay hieu luc dung cho Selenium'
+            )
+            db.session.add(not_started_promotion)
+        else:
+            not_started_promotion.active = True
+            not_started_promotion.availability_count = 100
+            not_started_promotion.value = 0.1
+            not_started_promotion.max_discount_amount = 100000
+            not_started_promotion.min_order_value = 100000
+            not_started_promotion.start_date = datetime(2026, 8, 1, 0, 0, 0)
+            not_started_promotion.expire_date = datetime(2026, 12, 31, 23, 59, 59)
+        db.session.flush()
+
+        test_promotions = [
+            promotion,
+            expired_promotion,
+            out_of_usage_promotion,
+            voucher_promotion,
+            not_started_promotion
+        ]
+
+        for p in test_promotions:
+            UserPromotionUsage.query.filter_by(
+                user_id=user.id,
+                promotion_id=p.id
+            ).delete()
+        db.session.commit()
+
+@pytest.fixture
+def driver():
+    driver = webdriver.Chrome()
+    driver.implicitly_wait(3)
+
+    yield driver
+
+    driver.quit()

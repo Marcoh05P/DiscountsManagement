@@ -107,7 +107,7 @@
         if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
             const formData = new FormData();
             formData.append('status', 'CANCELLED');
-            fetch(`/orders/${orderId}`, {
+            fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 body: formData
             })
@@ -136,7 +136,7 @@
         if (confirm('Bạn có chắc chắn muốn đánh dấu đơn hàng này là hoàn thành? Sau khi hoàn thành, bạn sẽ không thể hủy đơn hàng này nữa.')) {
             const formData = new FormData();
             formData.append('status', 'COMPLETED');
-            fetch(`/orders/${orderId}`, {
+            fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 body: formData
             })

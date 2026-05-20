@@ -130,7 +130,7 @@ def test_update_order_status(test_client, mocker, sample_promotion, sample_order
                         user_id=user_id, role=user_role)
     mocker.patch("flask_login.utils._get_user", return_value=fakeUser)
 
-    res = test_client.patch(f'/orders/{order_id}', data={
+    res = test_client.patch(f'/api/orders/{order_id}', data={
         'status': input_order_status
     })
     assert res.status_code == expected_status_code
@@ -162,7 +162,7 @@ def test_update_order_status_invalid_order_id(test_client, mocker):
                         role=UserRole.CUSTOMER)
     mocker.patch("flask_login.utils._get_user", return_value=fakeUser)
 
-    res = test_client.patch('/orders/invalid_id', data={
+    res = test_client.patch('/api/orders/invalid_id', data={
         'status': 'CANCELLED'
     })
     assert res.status_code == 404
