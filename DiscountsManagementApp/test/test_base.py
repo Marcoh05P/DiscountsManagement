@@ -6,7 +6,7 @@ from flask import Flask
 
 from DiscountsManagementApp import db, login_manager
 from DiscountsManagementApp.index import register_routes
-from DiscountsManagementApp.models import Order, OrderStatus, Promotion, PromotionType, User, UserPromotionUsage
+from DiscountsManagementApp.models import Order, OrderStatus, Promotion, PromotionType, User, UserPromotionUsage, UserRole
 
 from selenium import webdriver
 
@@ -638,14 +638,52 @@ def selenium_data():
             not_started_promotion.min_order_value = 100000
             not_started_promotion.start_date = datetime(2026, 8, 1, 0, 0, 0)
             not_started_promotion.expire_date = datetime(2026, 12, 31, 23, 59, 59)
+        used_promotion = Promotion.query.filter_by(code='SELUSED').first()
+
+        if used_promotion is None:
+            used_promotion = Promotion(
+                code='SELUSED',
+                start_date=datetime(2026, 1, 1, 0, 0, 0),
+                expire_date=datetime(2026, 12, 31, 23, 59, 59),
+                promotion_type=PromotionType.COUPON,
+                availability_count=100,
+                value=0.15,
+                max_discount_amount=100000,
+                min_order_value=100000,
+                description='Ma giam gia da co don hang su dung dung cho Selenium'
+            )
+            db.session.add(used_promotion)
+        else:
+            used_promotion.active = True
+            used_promotion.availability_count = 100
+            used_promotion.value = 0.15
+            used_promotion.max_discount_amount = 100000
+            used_promotion.min_order_value = 100000
+            used_promotion.start_date = datetime(2026, 1, 1, 0, 0, 0)
+            used_promotion.expire_date = datetime(2026, 12, 31, 23, 59, 59)
         db.session.flush()
+        used_order = Order.query.filter_by(
+            customer_id=user.id,
+            promotion_id=used_promotion.id
+        ).first()
+
+        if used_order is None:
+            used_order = Order(
+                customer_id=user.id,
+                sub_total_amount=500000,
+                discount_amount=75000,
+                final_amount=425000,
+                promotion_id=used_promotion.id
+            )
+            db.session.add(used_order)
 
         test_promotions = [
             promotion,
             expired_promotion,
             out_of_usage_promotion,
             voucher_promotion,
-            not_started_promotion
+            not_started_promotion,
+            used_promotion
         ]
 
         for p in test_promotions:
