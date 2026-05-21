@@ -403,7 +403,37 @@ def test_admin_create_coupon_over_50_percent_fail(driver):
         or 'không hợp lệ' in driver.page_source.lower()
         or 'giá trị' in driver.page_source.lower()
     )
+def test_admin_create_coupon_expire_date_before_start_date_fail(driver):
+    login = LoginPage(driver)
+    login.open_page()
+    login.login(ADMIN_PHONE, ADMIN_PASSWORD)
 
+    time.sleep(3)
+
+    promotion_admin = PromotionAdminPage(driver)
+    promotion_admin.open_create_page()
+
+    time.sleep(2)
+
+    code = 'DATE' + str(int(time.time()))[-6:]
+
+    promotion_admin.create_coupon(
+        code=code,
+        start_date='22/05/2026 00:00',
+        expire_date='20/05/2026 23:59'
+    )
+
+    time.sleep(3)
+
+    assert 'admin/promotion/new' in driver.current_url
+    assert (
+        'ngày' in driver.page_source.lower()
+        or 'hết hạn' in driver.page_source.lower()
+        or 'bắt đầu' in driver.page_source.lower()
+        or 'không hợp lệ' in driver.page_source.lower()
+        or 'expire' in driver.page_source.lower()
+        or 'start' in driver.page_source.lower()
+    )
 def test_order_created_status_is_pending(driver, selenium_data):
     login = LoginPage(driver)
     login.open_page()
@@ -424,3 +454,43 @@ def test_order_created_status_is_pending(driver, selenium_data):
     assert 'Chờ xử lý' in driver.page_source
     assert 'Hoàn thành' in driver.page_source
     assert 'Hủy' in driver.page_source
+
+def test_admin_create_voucher_success(driver):
+    login = LoginPage(driver)
+    login.open_page()
+    login.login(ADMIN_PHONE, ADMIN_PASSWORD)
+
+    time.sleep(3)
+
+    promotion_admin = PromotionAdminPage(driver)
+    promotion_admin.open_create_page()
+
+    time.sleep(2)
+
+    code = 'V' + str(int(time.time()))[-8:]
+
+    promotion_admin.create_voucher(code, value='20000')
+
+    time.sleep(3)
+
+    assert 'admin/promotion' in driver.current_url
+    assert 'Record was successfully created' in driver.page_source
+
+def test_admin_cannot_delete_promotion_used_by_order(driver):
+    login = LoginPage(driver)
+    login.open_page()
+    login.login(ADMIN_PHONE, ADMIN_PASSWORD)
+
+    time.sleep(3)
+
+    promotion_admin = PromotionAdminPage(driver)
+    promotion_admin.delete_promotion_by_code('SUPER15')
+
+    time.sleep(2)
+
+    assert (
+        'Không thể xóa khuyến mãi vì đã có đơn hàng sử dụng' in driver.page_source
+        or 'đã có đơn hàng sử dụng' in driver.page_source
+        or 'không thể xóa' in driver.page_source.lower()
+    )
+
