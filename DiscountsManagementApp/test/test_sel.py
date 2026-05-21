@@ -3,7 +3,7 @@ import time
 from DiscountsManagementApp.test.pages.HomePage import HomePage
 from DiscountsManagementApp.test.pages.LoginPage import LoginPage
 from DiscountsManagementApp.test.test_base import driver, selenium_data
-
+from selenium.webdriver.common.by import By
 from DiscountsManagementApp.test.pages.RegisterPage import RegisterPage
 from DiscountsManagementApp.test.pages.OrderPage import OrderPage
 from DiscountsManagementApp.test.pages.PromotionAdminPage import PromotionAdminPage
@@ -35,7 +35,41 @@ def test_login_wrong_password(driver):
     time.sleep(1)
     assert driver.current_url == 'http://127.0.0.1:5000/login'
 
+def test_login_admin_success(driver):
+    login = LoginPage(driver=driver)
+    login.open_page()
+    login.login(ADMIN_PHONE, ADMIN_PASSWORD)
 
+    time.sleep(1)
+
+    assert driver.current_url != 'http://127.0.0.1:5000/login'
+    assert (
+        'Admin' in driver.page_source
+        or 'Quản trị' in driver.page_source
+        or 'admin' in driver.current_url.lower()
+    )
+def test_customer_login_success(driver, selenium_data):
+    login = LoginPage(driver)
+    login.open_page()
+    login.login(SEL_USER_PHONE, SEL_USER_PASSWORD)
+
+    time.sleep(1)
+
+    assert driver.current_url != 'http://127.0.0.1:5000/login'
+    assert 'Selenium Customer' in driver.page_source
+    assert 'admin/promotion' not in driver.page_source
+def test_home_search_promotion_found(driver):
+    kw = 'SHIP50K'
+
+    home = HomePage(driver=driver)
+    home.open_page()
+    home.search(kw)
+
+    time.sleep(1)
+
+    result = driver.find_element(By.CSS_SELECTOR, 'body > section > div > div')
+
+    assert kw in result.text
 def test_home_search_promotion(driver):
     kw = 'SUPER40'
 
